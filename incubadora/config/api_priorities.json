@@ -1,0 +1,71 @@
+{
+  "llm_roteiro": {
+    "providers": [
+      {
+        "tipo": "gemini_multi_key",
+        "modelos": ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"],
+        "keys": [
+          "GOOGLE_API_KEY_VIDEO",
+          "GOOGLE_API_KEY_AUDIO",
+          "GOOGLE_API_KEY_IMAGE",
+          "GOOGLE_API_KEY"
+        ],
+        "custo_estimado": "Baixo/Médio",
+        "prioridade": 1
+      },
+      {
+        "tipo": "groq",
+        "modelos": ["llama-3.3-70b-versatile", "llama-3.1-70b-versatile"],
+        "keys": ["GROQ_API_KEY"],
+        "custo_estimado": "Grátis (tier free)",
+        "prioridade": 2
+      },
+      {
+        "tipo": "anthropic",
+        "modelos": ["claude-3-5-haiku-20241022", "claude-3-5-sonnet-20241022"],
+        "keys": ["ANTHROPIC_API_KEY"],
+        "custo_estimado": "Alto",
+        "prioridade": 3
+      }
+    ]
+  },
+  
+  "imagem": {
+    "providers": [
+      {
+        "tipo": "imagen_multi_key",
+        "modelos": ["imagen-3.0-fast-generate-001", "imagegeneration@006"],
+        "keys": [
+          "GOOGLE_API_KEY_IMAGE",
+          "GOOGLE_API_KEY_VIDEO",
+          "GOOGLE_API_KEY_AUDIO",
+          "GOOGLE_API_KEY"
+        ],
+        "custo_estimado": "$0.02/imagem",
+        "prioridade": 1
+      },
+      {
+        "tipo": "gemini_image_gen",
+        "modelos": ["gemini-2.0-flash-exp"],
+        "keys": [
+          "GOOGLE_API_KEY_IMAGE",
+          "GOOGLE_API_KEY"
+        ],
+        "custo_estimado": "Incluído no Gemini",
+        "prioridade": 2
+      }
+    ]
+  },
+  
+  "audio_tts": {
+    "providers": [
+      {
+        "tipo": "google_cloud_tts",
+        "modelos": ["pt-BR-Neural2-B"],
+        "keys": ["GOOGLE_API_KEY"],
+        "custo_estimado": "$16/1M caracteres",
+        "prioridade": 1
+      }
+    ]
+  }
+}

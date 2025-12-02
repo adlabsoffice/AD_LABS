@@ -1,15 +1,21 @@
 import os
 import json
 import time
+import sys
 from rich.console import Console
-from groq import Groq
+from rich.panel import Panel
+
+# Adiciona diretório pai (incubadora) ao path para importar utils
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Integração com APIManager
+from utils.api_manager import APIManager
 
 console = Console()
 
 class Agente02Pesquisador:
     def __init__(self):
-        self.api_key = os.getenv("GROQ_API_KEY")
-        self.client = Groq(api_key=self.api_key) if self.api_key else None
+        self.api_manager = APIManager()
         
         # Knowledge Base: Carrega estratégias dos arquivos locais (01-10)
         self.knowledge_base = self._carregar_knowledge_base()
@@ -36,29 +42,104 @@ class Agente02Pesquisador:
                     console.print(f"[red]Erro ao ler {f}: {e}[/red]")
         return kb
 
+    def _call_llm(self, api_key, modelo, prompt, system_prompt="Você é um especialista em YouTube."):
+        """Função auxiliar para chamar LLM via APIManager (compatível com Gemini/Groq/Claude)."""
+        
+        import requests
+        
+        if "gemini" in modelo or "google" in modelo:
+            # Chamada Gemini via REST API (simplificado)
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent?key={api_key}"
+            payload = {
+                "contents": [{"parts": [{"text": f"{system_prompt}\n\n{prompt}"}]}]
+            }
+            response = requests.post(url, json=payload, timeout=30)
+            response.raise_for_status()
+            return response.json()["candidates"][0]["content"]["parts"][0]["text"]
+            
+        elif "llama" in modelo or "groq" in modelo:
+            # Chamada Groq
+            from groq import Groq
+            client = Groq(api_key=api_key)
+            completion = client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt}
+                ],
+                model=modelo,
+            )
+            return completion.choices[0].message.content
+            
+        elif "claude" in modelo:
+            # Chamada Anthropic
+            import anthropic
+            client = anthropic.Anthropic(api_key=api_key)
+            message = client.messages.create(
+                model=modelo,
+                max_tokens=2000,
+                system=system_prompt,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            return message.content[0].text
+            
+        else:
+            raise ValueError(f"Modelo desconhecido: {modelo}")
+
     def pesquisar_conteudo_base(self, tema, alvo):
         """
-        Pesquisa o conteúdo original para o React.
-        Ex: Pesquisa vídeos do 'Primo Rico' sobre 'Dívidas' ou 'Investimentos'.
+        Pesquisa o conteúdo original para o React usando LLM Real.
         """
         console.print(f"[bold yellow]AGENTE 02: Pesquisando '{alvo}' sobre '{tema}'...[/bold yellow]")
         
-        # Simulação de busca no YouTube (API real viria aqui)
-        resultado_simulado = {
-            "titulo_original": "3 ERROS QUE TE DEIXAM POBRE (Primo Rico)",
-            "pontos_chave": [
-                "Erro 1: Gastar mais do que ganha.",
-                "Erro 2: Não investir o dinheiro.",
-                "Erro 3: Comprar passivos achando que são ativos."
-            ],
-            "tom_original": "Educativo, Pragmático, Focado em Matemática Financeira.",
-            "oportunidade_react": "Jesus concorda com a prudência (Provérbios), mas adiciona a dimensão espiritual (Generosidade/Propósito) que o Primo Rico não aborda."
-        }
+        prompt = f"""
+        Atue como um pesquisador de YouTube experiente.
+        Eu preciso encontrar um vídeo viral ou um conceito forte sobre "{alvo}" dentro do nicho "{tema}".
         
-        time.sleep(2) # Simula tempo de pesquisa
-        console.print(f"[green]Video Encontrado:[/green] {resultado_simulado['titulo_original']}")
+        1. Simule uma busca mental por vídeos reais de grandes players (ex: Primo Rico, Ei Nerd, Gaveta, etc dependendo do nicho).
+        2. Escolha UM vídeo específico que seria excelente para fazer um React ou Modelagem.
+        3. Extraia os pontos chave desse vídeo.
         
-        return resultado_simulado
+        Retorne APENAS um JSON com este formato:
+        {{
+            "titulo_original": "Título do Vídeo Encontrado",
+            "canal_original": "Nome do Canal",
+            "pontos_chave": ["Ponto 1", "Ponto 2", "Ponto 3"],
+            "tom_original": "Descrição do tom (ex: Sério, Engraçado, Técnico)",
+            "oportunidade_react": "Por que este vídeo é bom para reagir? Qual o ângulo?"
+        }}
+        """
+        
+        try:
+            # Usa APIManager para garantir que a chamada aconteça
+            resposta_json_str = self.api_manager.chamar_com_fallback(
+                "llm_roteiro",
+                self._call_llm,
+                prompt=prompt,
+                system_prompt="Você é um assistente JSON que retorna apenas JSON válido."
+            )
+            
+            # Limpa markdown ```json se existir
+            if "```json" in resposta_json_str:
+                resposta_json_str = resposta_json_str.split("```json")[1].split("```")[0]
+            elif "```" in resposta_json_str:
+                resposta_json_str = resposta_json_str.split("```")[1].split("```")[0]
+                
+            resultado = json.loads(resposta_json_str)
+            
+            console.print(f"[green]Video Encontrado (IA):[/green] {resultado.get('titulo_original', 'Sem título')}")
+            return resultado
+            
+        except Exception as e:
+            console.print(f"[red]Erro na pesquisa IA: {e}[/red]")
+            # Fallback para dados simulados em caso de erro extremo de parse
+            return {
+                "titulo_original": f"Análise de {alvo} (Fallback)",
+                "pontos_chave": ["Erro na geração IA", "Usando dados fallback"],
+                "tom_original": "Neutro",
+                "oportunidade_react": "Erro na API, verificar logs."
+            }
 
     def analisar_viabilidade_viral(self, ideia):
         """
@@ -66,7 +147,7 @@ class Agente02Pesquisador:
         """
         console.print(f"[bold yellow]AGENTE 02: Validando 'Green Dot' para '{ideia}'...[/bold yellow]")
         
-        # 1. Teste das 3 Perguntas (Simulado)
+        # 1. Teste das 3 Perguntas (Simulado por enquanto, mas estruturado)
         perguntas = {
             "perpetual": True, # Dá para fazer 100 videos?
             "searchable": True, # Tem demanda?
@@ -78,18 +159,46 @@ class Agente02Pesquisador:
             return {"score": 0, "analise": "Falha no Green Dot."}
 
         # 2. Packaging First (Titulo + Thumb)
-        # O Agente 02 agora define isso ANTES do roteiro
-        packaging = {
-            "titulo_hook": "JESUS vs PRIMO RICO: Quem está certo?",
-            "thumbnail_concept": "Jesus (lado esquerdo, humilde) vs Primo Rico (lado direito, terno). Texto: 'DINHEIRO OU ALMA?'"
-        }
+        # Usa LLM para gerar packaging criativo
+        prompt = f"""
+        Crie um conceito de Packaging (Título + Thumbnail) para um vídeo sobre: "{ideia}".
         
-        # APLICAR REGRAS TOP 100 (Arquivo 11)
-        packaging = self._aplicar_regras_top100(packaging)
+        Regras do Top 100:
+        - Título: 6-8 palavras, Curiosidade ou Benefício Claro.
+        - Thumb: Simples, Alto Contraste, Max 3 palavras de texto.
+        
+        Retorne JSON:
+        {{
+            "titulo_hook": "Título aqui",
+            "thumbnail_concept": "Descrição visual da thumb"
+        }}
+        """
+        
+        try:
+            resposta_json_str = self.api_manager.chamar_com_fallback(
+                "llm_roteiro",
+                self._call_llm,
+                prompt=prompt
+            )
+            
+            # Limpeza básica de JSON
+            if "```json" in resposta_json_str:
+                resposta_json_str = resposta_json_str.split("```json")[1].split("```")[0]
+            elif "```" in resposta_json_str:
+                resposta_json_str = resposta_json_str.split("```")[1].split("```")[0]
+                
+            packaging = json.loads(resposta_json_str)
+            
+        except Exception as e:
+            console.print(f"[yellow]Erro no Packaging IA: {e}. Usando fallback.[/yellow]")
+            packaging = {
+                "titulo_hook": f"{ideia}: A Verdade Revelada",
+                "thumbnail_concept": "Rosto surpreso, fundo vermelho."
+            }
         
         console.print(f"[green]Green Dot Validado![/green]")
-        console.print(f"   [cyan]Titulo:[/cyan] {packaging['titulo_hook']}")
-        console.print(f"   [cyan]Thumb:[/cyan] {packaging['thumbnail_concept']}")
+        console.print(f"   [cyan]Titulo:[/cyan] {packaging.get('titulo_hook')}")
+        console.print(f"   [cyan]Thumb:[/cyan] {packaging.get('thumbnail_concept')}")
 
         return {
             "score": 95,
@@ -97,29 +206,8 @@ class Agente02Pesquisador:
             "packaging": packaging
         }
 
-    def _aplicar_regras_top100(self, packaging):
-        """
-        Refina o packaging para seguir estritamente o Blueprint do Top 100.
-        """
-        titulo = packaging['titulo_hook']
-        thumb_desc = packaging['thumbnail_concept']
-        
-        # REGRA 1: Título (6-8 palavras, Title Case, Sem Emojis)
-        # Mock de refinamento (em produção seria via LLM)
-        palavras = titulo.split()
-        if len(palavras) < 6 or len(palavras) > 8:
-            # Força ajuste para exemplo (simulado)
-            titulo = "Jesus Contra Primo Rico: A Verdade Financeira" # 7 palavras
-        
-        # Title Case
-        titulo = titulo.title()
-        
-        # REGRA 2: Thumbnail (Max 3 palavras, Cores)
-        # Adiciona instrução de cores se não tiver
-        if "Cores:" not in thumb_desc:
-            thumb_desc += " Cores: Fundo Preto/Cinza Escuro, Contraste Vermelho/Branco."
-            
-        return {
-            "titulo_hook": titulo,
-            "thumbnail_concept": thumb_desc
-        }
+if __name__ == "__main__":
+    # Teste rápido
+    agente = Agente02Pesquisador()
+    res = agente.pesquisar_conteudo_base("Finanças", "Dívidas")
+    print(json.dumps(res, indent=2, ensure_ascii=False))

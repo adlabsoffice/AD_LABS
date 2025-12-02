@@ -6,17 +6,10 @@ Responsabilidade: Transformar clusters em 5 "eixos emocionais" estruturados
 
 import os
 import json
-import sys
 from typing import Dict, List
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import track
-
-# Adiciona diretório pai (incubadora) ao path para importar utils
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-# Integração com APIManager
-from utils.api_manager import APIManager
 
 console = Console()
 
@@ -30,7 +23,6 @@ class Agente04ArquitetoEixos:
     """
     Agente 04: Arquiteto de Eixos
     Transforma cada cluster em "eixo emocional" (formato de conteúdo estruturado)
-    Usa LLM para criar estruturas narrativas complexas.
     """
     
     def __init__(self):
@@ -38,44 +30,7 @@ class Agente04ArquitetoEixos:
         self.output_path = "outputs/T03_eixos"
         self.clusters_file = "T02_clusters.json"
         self.num_eixos = 5
-        self.api_manager = APIManager()
     
-    def _call_llm(self, api_key, modelo, prompt, system_prompt="Você é um arquiteto de narrativas."):
-        """Função auxiliar para chamar LLM via APIManager."""
-        import requests
-        
-        if "gemini" in modelo or "google" in modelo:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent?key={api_key}"
-            payload = {"contents": [{"parts": [{"text": f"{system_prompt}\n\n{prompt}"}]}]}
-            response = requests.post(url, json=payload, timeout=30)
-            response.raise_for_status()
-            return response.json()["candidates"][0]["content"]["parts"][0]["text"]
-            
-        elif "llama" in modelo or "groq" in modelo:
-            from groq import Groq
-            client = Groq(api_key=api_key)
-            completion = client.chat.completions.create(
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}
-                ],
-                model=modelo,
-            )
-            return completion.choices[0].message.content
-            
-        elif "claude" in modelo:
-            import anthropic
-            client = anthropic.Anthropic(api_key=api_key)
-            message = client.messages.create(
-                model=modelo,
-                max_tokens=2000,
-                system=system_prompt,
-                messages=[{"role": "user", "content": prompt}]
-            )
-            return message.content[0].text
-        else:
-            raise ValueError(f"Modelo desconhecido: {modelo}")
-
     def criar_estrutura_outputs(self):
         """Cria pasta de output para eixos."""
         os.makedirs(self.output_path, exist_ok=True)
@@ -115,79 +70,77 @@ class Agente04ArquitetoEixos:
     
     def criar_eixo_de_cluster(self, cluster: Dict, eixo_numero: int) -> Dict:
         """
-        Cria um eixo emocional estruturado a partir de um cluster usando LLM.
+        Cria um eixo emocional estruturado a partir de um cluster.
+        
+        Args:
+            cluster: Dados do cluster
+            eixo_numero: Número do eixo (1-5)
+        
+        Returns:
+            Dict com estrutura completa do eixo
         """
+        # Extrai informações do cluster (formato flexível)
+        cluster_id = cluster.get("id", f"cluster_{eixo_numero}")
+        emocao_principal = cluster.get("emocao_central", cluster.get("tema", "Emoção Genérica"))
         
-        prompt = f"""
-        Transforme este Cluster de Vídeos em um "Eixo Narrativo" estruturado para um canal Dark/Viral.
+        # Define padrões dramáticos comuns por tipo de emoção
+        padroes_dramaticos = {
+            "humilhacao": "conflito injusto → virada → justiça",
+            "medo": "ameaça → tensão → alívio/revelação",
+            "curiosidade": "mistério → investigação → descoberta",
+            "raiva": "injustiça → confronto → reparação",
+            "tristeza": "perda → luto → superação"
+        }
         
-        CLUSTER: {cluster.get('nome')}
-        EMOÇÃO CENTRAL: {cluster.get('emocao_central')}
-        DESCRIÇÃO: {cluster.get('descricao')}
-        EXEMPLOS: {json.dumps(cluster.get('exemplos_titulos', []), ensure_ascii=False)}
+        # Tenta identificar padrão ou usa genérico
+        emocao_lower = emocao_principal.lower()
+        padrao = None
+        for key, value in padroes_dramaticos.items():
+            if key in emocao_lower:
+                padrao = value
+                break
         
-        Defina:
-        1. Padrão Dramático (A jornada emocional do espectador)
-        2. Personagem Tipo (Quem vive essa história?)
-        3. Ângulo de Abordagem (Como contar isso de forma única?)
+        if not padrao:
+            padrao = "setup → conflito → resolução"
         
-        Retorne JSON:
-        {{
-            "nome": "Nome criativo do Eixo",
-            "emocao_central": "Emoção principal",
-            "personagem_tipo": "Arquétipo do personagem",
-            "padrao_dramatico": "Ex: Situação Inicial -> Conflito -> Resolução",
-            "angulo_abordagem": "Ex: Investigativo / Denúncia / Inspiracional",
-            "descricao": "Resumo do conceito do eixo",
-            "saturacao": "baixa/média/alta",
-            "forca": "baixa/média/alta",
-            "risco": "baixo/médio/alto"
-        }}
-        """
+        # Categorias possíveis (genéricas)
+        categorias = cluster.get("categorias", ["escola", "trabalho", "família", "relacionamentos"])
         
-        try:
-            resposta_json_str = self.api_manager.chamar_com_fallback(
-                "llm_roteiro",
-                self._call_llm,
-                prompt=prompt,
-                system_prompt="Você é um showrunner de TV experiente. Retorne apenas JSON."
-            )
-            
-            if "```json" in resposta_json_str:
-                resposta_json_str = resposta_json_str.split("```json")[1].split("```")[0]
-            elif "```" in resposta_json_str:
-                resposta_json_str = resposta_json_str.split("```")[1].split("```")[0]
-                
-            eixo_ia = json.loads(resposta_json_str)
-            
-            # Mescla com dados estruturais
-            eixo = {
-                "id": f"eixo_{eixo_numero:02d}",
-                "cluster_origem": cluster.get("id"),
-                "timestamp": "T=3",
-                "status": "validado",
-                **eixo_ia # Usa dados da IA
-            }
-            
-            return eixo
-            
-        except Exception as e:
-            console.print(f"[yellow]Erro na criação do Eixo IA: {e}. Usando fallback.[/yellow]")
-            # Fallback para lógica determinística antiga
-            return {
-                "id": f"eixo_{eixo_numero:02d}",
-                "nome": f"Eixo {cluster.get('nome')}",
-                "cluster_origem": cluster.get("id"),
-                "emocao_central": cluster.get("emocao_central", "Geral"),
-                "padrao_dramatico": "setup -> conflito -> resolução",
-                "descricao": "Eixo gerado via fallback.",
-                "timestamp": "T=3",
-                "status": "fallback"
-            }
+        # Scores (usa valores do cluster ou defaults)
+        saturacao = cluster.get("saturacao", "média")
+        forca = cluster.get("forca", "média")
+        risco = cluster.get("risco", "baixo")
+        rpm_esperado = cluster.get("rpm_esperado", "médio")
+        
+        # Nome do eixo
+        nome_eixo = cluster.get("nome", f"Eixo {eixo_numero}: {emocao_principal}")
+        
+        # Monta eixo estruturado
+        eixo = {
+            "id": f"eixo_{eixo_numero:02d}",
+            "nome": nome_eixo,
+            "cluster_origem": cluster_id,
+            "emocao_central": emocao_principal,
+            "personagem_tipo": cluster.get("personagem", "pessoa comum enfrentando desafio"),
+            "formato_video": cluster.get("formato", "1-3min"),
+            "padrao_dramatico": padrao,
+            "categorias_possiveis": categorias if isinstance(categorias, list) else ["geral"],
+            "saturacao": saturacao,
+            "forca": forca,
+            "risco": risco,
+            "rpm_esperado": rpm_esperado,
+            "timestamp": "T=3",
+            "status": "validado"
+        }
+        
+        return eixo
     
     def validar_eixo(self, eixo: Dict) -> bool:
         """Valida se eixo tem todos campos obrigatórios."""
-        campos_obrigatorios = ["id", "nome", "emocao_central", "padrao_dramatico"]
+        campos_obrigatorios = [
+            "id", "nome", "emocao_central", "padrao_dramatico",
+            "saturacao", "forca", "risco"
+        ]
         
         for campo in campos_obrigatorios:
             if campo not in eixo:
@@ -209,26 +162,19 @@ class Agente04ArquitetoEixos:
             console.print(f"[red]Erro ao salvar {filename}: {e}[/red]")
             raise
     
-    def salvar_todos_eixos(self, eixos: List[Dict]):
-        """Salva todos os eixos em um único arquivo para o Agente 05 ler fácil."""
-        filepath = os.path.join(self.input_path, "T03_eixos_narrativos.json")
-        try:
-            with open(filepath, "w", encoding="utf-8") as f:
-                json.dump({"eixos_narrativos": eixos}, f, indent=2, ensure_ascii=False)
-            console.print(f"[green]✅ Arquivo consolidado salvo: {filepath}[/green]")
-        except Exception as e:
-            console.print(f"[red]Erro ao salvar consolidado: {e}[/red]")
-
     def atualizar_progress(self):
         """Atualiza arquivo progress.json."""
         progress_file = os.path.join(self.input_path, "progress.json")
+        
         try:
+            # Carrega progress existente
             if os.path.exists(progress_file):
                 with open(progress_file, "r", encoding="utf-8") as f:
                     progress = json.load(f)
             else:
                 progress = {}
             
+            # Atualiza
             progress.update({
                 "timestamp_atual": "T=3",
                 "ultimo_agente": "arquiteto_eixos",
@@ -237,16 +183,25 @@ class Agente04ArquitetoEixos:
                 "checkpoint": {
                     "eixos_criados": self.num_eixos,
                     "ideias_geradas": 0,
-                    "videos_produzidos": 0
+                    "videos_produzidos": 0,
+                    "mare_identificada": False
                 }
             })
             
+            # Salva
             with open(progress_file, "w", encoding="utf-8") as f:
                 json.dump(progress, f, indent=2, ensure_ascii=False)
-        except Exception:
-            pass
+            
+        except Exception as e:
+            console.print(f"[yellow]Aviso: Não foi possível atualizar progress.json: {e}[/yellow]")
     
     def executar(self) -> List[Dict]:
+        """
+        Método principal - executa o agente arquiteto de eixos.
+        
+        Returns:
+            Lista com os 5 eixos criados
+        """
         console.print(Panel.fit(
             "[bold cyan]📐 AGENTE 04: ARQUITETO DE EIXOS[/bold cyan]\n"
             "[dim]Transformando clusters em eixos emocionais (T=3)[/dim]",
@@ -289,9 +244,6 @@ class Agente04ArquitetoEixos:
                 self.salvar_eixo(eixo, eixo_numero)
                 eixos_criados.append(eixo)
             
-            # Salva consolidado para Agente 05
-            self.salvar_todos_eixos(eixos_criados)
-            
             # 4. Atualizar progress
             self.atualizar_progress()
             
@@ -309,30 +261,19 @@ class Agente04ArquitetoEixos:
             
             return eixos_criados
             
-        except Exception as e:
-            console.print(f"[bold red]❌ Erro: {e}[/bold red]")
+        except FileNotFoundError as e:
+            console.print(f"[bold red]❌ Arquivo não encontrado: {e}[/bold red]")
             raise
+        except ErroClusterInvalido as e:
+            console.print(f"[bold red]❌ Erro nos clusters: {e}[/bold red]")
+            raise
+        except Exception as e:
+            console.print(f"[bold red]❌ Erro inesperado: {e}[/bold red]")
+            raise
+
 
 def main():
     """Função para teste standalone do agente."""
-    # Mock de Clusters para teste se não existir
-    if not os.path.exists(os.path.join("outputs", "T02_clusters.json")):
-        console.print("[yellow]Criando Clusters mock para teste...[/yellow]")
-        os.makedirs("outputs", exist_ok=True)
-        mock_data = {
-            "clusters": [
-                {
-                    "id": "cluster_mock_1",
-                    "nome": "Cluster Mock",
-                    "emocao_central": "Curiosidade",
-                    "descricao": "Cluster de teste",
-                    "exemplos_titulos": ["Video 1", "Video 2"]
-                }
-            ]
-        }
-        with open(os.path.join("outputs", "T02_clusters.json"), "w", encoding="utf-8") as f:
-            json.dump(mock_data, f, indent=2)
-
     agente = Agente04ArquitetoEixos()
     eixos = agente.executar()
     
@@ -340,6 +281,7 @@ def main():
     for i, eixo in enumerate(eixos, 1):
         console.print(f"\n[bold]Eixo {i}:[/bold]")
         console.print(json.dumps(eixo, indent=2, ensure_ascii=False))
+
 
 if __name__ == "__main__":
     main()

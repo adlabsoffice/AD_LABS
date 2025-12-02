@@ -49,3 +49,5 @@ Neu TTS Oracle/
 incubadora/gcp-credentials.json
 incubadora/.env.aws
 *.json
+
+!incubadora/config/*.json
