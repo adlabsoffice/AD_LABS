@@ -4,6 +4,7 @@ import json
 import argparse
 from rich.console import Console
 from rich.panel import Panel
+from rich.prompt import Confirm
 
 import requests
 from dotenv import load_dotenv
@@ -71,7 +72,34 @@ def main():
     console.print(Panel.fit(f"[bold cyan]ORCHESTRATOR: Iniciando Canal '{args.canal}'[/bold cyan]"))
 
     # 1. Carregar Configuração
-    config = carregar_config_canal(args.canal)
+    try:
+        config = carregar_config_canal(args.canal)
+    except SystemExit:
+        # Se não encontrou config, pergunta se quer criar (T=0)
+        console.print(f"\n[bold yellow]⚠ Configuração do canal '{args.canal}' não encontrada.[/bold yellow]")
+        if Confirm.ask("Deseja iniciar o Agente 01 para configurar este canal agora?"):
+            console.print("\n[bold white]0. INICIANDO AGENTE 01 (INICIALIZADOR)...[/bold white]")
+            from agentes.agente_01_inicializador import Agente01Inicializador
+            
+            # Instancia e executa
+            agente01 = Agente01Inicializador()
+            # O Agente 01 por padrão salva em outputs/, mas queremos pegar o retorno e salvar no canal
+            config_gerada = agente01.executar()
+            
+            # Salva no diretório do canal
+            base_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "canais")
+            canal_path = os.path.join(base_path, args.canal)
+            os.makedirs(canal_path, exist_ok=True)
+            
+            config_file = os.path.join(canal_path, "config.json")
+            with open(config_file, "w", encoding="utf-8") as f:
+                json.dump(config_gerada, f, indent=2, ensure_ascii=False)
+                
+            console.print(f"[green]✅ Configuração salva em: {config_file}[/green]")
+            config = config_gerada
+        else:
+            console.print("[red]Operação cancelada.[/red]")
+            sys.exit(1)
     
     # Notifica Inicio
     enviar_telegram(f"🏭 **Orquestrador Iniciado!**\n\n🎬 Canal: `{args.canal}`\n⚙️ Modo: `{args.modo}`")
