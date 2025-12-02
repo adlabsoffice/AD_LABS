@@ -1,0 +1,43 @@
+{
+  "projeto": "Incubadora v5",
+  "fps": 30,
+  "resolucao": [
+    1080,
+    1920
+  ],
+  "clips": [
+    {
+      "id": 0,
+      "start_time": 0.0,
+      "end_time": 9.36,
+      "duration": 9.36,
+      "assets": {
+        "audio_path": "D:\\AD_LABS\\incubadora\\output\\audio\\audio_bloco_000.mp3",
+        "image_path": "D:\\AD_LABS\\incubadora\\output\\images\\scene_000.png",
+        "text_content": "Você prefere ser rico na terra ou herdeiro do universo? A escolha é agora."
+      }
+    },
+    {
+      "id": 1,
+      "start_time": 9.36,
+      "end_time": 22.7,
+      "duration": 13.34,
+      "assets": {
+        "audio_path": "D:\\AD_LABS\\incubadora\\output\\audio\\audio_bloco_001.mp3",
+        "image_path": "D:\\AD_LABS\\incubadora\\output\\images\\scene_001.png",
+        "text_content": "O Primo Rico ensina a multiplicar moedas. Eu ensino a multiplicar vidas. Vamos ver onde ele errou."
+      }
+    },
+    {
+      "id": 2,
+      "start_time": 22.7,
+      "end_time": 37.54,
+      "duration": 14.83,
+      "assets": {
+        "audio_path": "D:\\AD_LABS\\incubadora\\output\\audio\\audio_bloco_002.mp3",
+        "image_path": "D:\\AD_LABS\\incubadora\\output\\images\\scene_002.png",
+        "text_content": "Juros compostos são poderosos, mas a generosidade rende 100 por 1. O erro não é investir, é amar o investimento."
+      }
+    }
+  ]
+}

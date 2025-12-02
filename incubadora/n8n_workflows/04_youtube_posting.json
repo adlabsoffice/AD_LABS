@@ -1,0 +1,159 @@
+{
+    "name": "04 - YouTube Posting (Universal)",
+    "nodes": [
+        {
+            "parameters": {},
+            "name": "Start",
+            "type": "n8n-nodes-base.start",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "fileSelector": "/home/ubuntu/incubadora/canais/{{$json.canal}}/output/metadata.json"
+            },
+            "name": "Ler Metadata",
+            "type": "n8n-nodes-base.readBinaryFile",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsonNotice": ""
+            },
+            "name": "Parse JSON",
+            "type": "n8n-nodes-base.moveBinaryData",
+            "typeVersion": 1,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{$json.formato_video}}",
+                            "value2": "LONGO"
+                        }
+                    ]
+                }
+            },
+            "name": "É Longo?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                850,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "authentication": "oAuth2",
+                "resource": "video",
+                "title": "={{$json.titulo}}",
+                "description": "={{$json.descricao}}",
+                "tags": "={{$json.tags}}",
+                "categoryId": "22",
+                "privacyStatus": "private"
+            },
+            "name": "Upload Longo",
+            "type": "n8n-nodes-base.youtube",
+            "typeVersion": 1,
+            "position": [
+                1100,
+                200
+            ],
+            "credentials": {
+                "youtubeOAuth2Api": {
+                    "id": "CREDENTIAL_ID_PLACEHOLDER",
+                    "name": "YouTube Account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "authentication": "oAuth2",
+                "resource": "video",
+                "title": "={{$json.titulo}} #Shorts",
+                "description": "={{$json.descricao}}",
+                "tags": "={{$json.tags}}",
+                "categoryId": "22",
+                "privacyStatus": "private"
+            },
+            "name": "Upload Short",
+            "type": "n8n-nodes-base.youtube",
+            "typeVersion": 1,
+            "position": [
+                1100,
+                400
+            ],
+            "credentials": {
+                "youtubeOAuth2Api": {
+                    "id": "CREDENTIAL_ID_PLACEHOLDER",
+                    "name": "YouTube Account"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Start": {
+            "main": [
+                [
+                    {
+                        "node": "Ler Metadata",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Ler Metadata": {
+            "main": [
+                [
+                    {
+                        "node": "Parse JSON",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse JSON": {
+            "main": [
+                [
+                    {
+                        "node": "É Longo?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "É Longo?": {
+            "main": [
+                [
+                    {
+                        "node": "Upload Longo",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Upload Short",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

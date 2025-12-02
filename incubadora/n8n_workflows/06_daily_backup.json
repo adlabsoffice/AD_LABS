@@ -1,0 +1,96 @@
+{
+    "name": "06 - Backup Diário de Assets",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "days",
+                            "days": 1,
+                            "triggerAtHour": 3
+                        }
+                    ]
+                }
+            },
+            "name": "Trigger 03:00",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "command": "cd /home/ubuntu && tar -czf backup_$(date +%Y%m%d).tar.gz incubadora/output incubadora/agentes && ls -lh backup_*.tar.gz | tail -5"
+            },
+            "name": "Criar Backup",
+            "type": "n8n-nodes-base.executeCommand",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "command": "find /home/ubuntu -name 'backup_*.tar.gz' -mtime +7 -delete"
+            },
+            "name": "Limpar Backups Antigos",
+            "type": "n8n-nodes-base.executeCommand",
+            "typeVersion": 1,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "content": "💾 Backup criado com sucesso!"
+            },
+            "name": "Sucesso",
+            "type": "n8n-nodes-base.noOp",
+            "typeVersion": 1,
+            "position": [
+                850,
+                200
+            ]
+        }
+    ],
+    "connections": {
+        "Trigger 03:00": {
+            "main": [
+                [
+                    {
+                        "node": "Criar Backup",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Criar Backup": {
+            "main": [
+                [
+                    {
+                        "node": "Limpar Backups Antigos",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Limpar Backups Antigos": {
+            "main": [
+                [
+                    {
+                        "node": "Sucesso",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

@@ -1,0 +1,111 @@
+{
+    "name": "07 - Trigger ComfyUI (Muscle)",
+    "nodes": [
+        {
+            "parameters": {},
+            "name": "Webhook Trigger",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ],
+            "webhookId": "comfyui-trigger"
+        },
+        {
+            "parameters": {
+                "command": "echo 'Iniciando instância GPU g4dn.xlarge...' && python3 /home/ubuntu/incubadora/deploy_muscle.py"
+            },
+            "name": "Ligar Muscle (Placeholder)",
+            "type": "n8n-nodes-base.executeCommand",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "amount": 60,
+                "unit": "seconds"
+            },
+            "name": "Aguardar Boot",
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "command": "echo 'Enviando job para ComfyUI via API... (placeholder)'"
+            },
+            "name": "Enviar Job ComfyUI",
+            "type": "n8n-nodes-base.executeCommand",
+            "typeVersion": 1,
+            "position": [
+                850,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "content": "🎨 Job enviado ao Muscle!"
+            },
+            "name": "Sucesso",
+            "type": "n8n-nodes-base.noOp",
+            "typeVersion": 1,
+            "position": [
+                1050,
+                200
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Ligar Muscle (Placeholder)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Ligar Muscle (Placeholder)": {
+            "main": [
+                [
+                    {
+                        "node": "Aguardar Boot",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Aguardar Boot": {
+            "main": [
+                [
+                    {
+                        "node": "Enviar Job ComfyUI",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Enviar Job ComfyUI": {
+            "main": [
+                [
+                    {
+                        "node": "Sucesso",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

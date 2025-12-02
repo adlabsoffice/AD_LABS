@@ -1,0 +1,73 @@
+{
+    "name": "04 - Upload YouTube Shorts",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "days",
+                            "days": 1,
+                            "triggerAtHour": 12
+                        }
+                    ]
+                }
+            },
+            "name": "Trigger 12:00 Diário",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "command": "cd /home/ubuntu/incubadora && python3 -c \"print('YouTube Shorts upload - usar API do YouTube')\""
+            },
+            "name": "Upload YouTube (Placeholder)",
+            "type": "n8n-nodes-base.executeCommand",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "content": "📺 Short enviado ao YouTube!"
+            },
+            "name": "Sucesso",
+            "type": "n8n-nodes-base.noOp",
+            "typeVersion": 1,
+            "position": [
+                650,
+                200
+            ]
+        }
+    ],
+    "connections": {
+        "Trigger 12:00 Diário": {
+            "main": [
+                [
+                    {
+                        "node": "Upload YouTube (Placeholder)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Upload YouTube (Placeholder)": {
+            "main": [
+                [
+                    {
+                        "node": "Sucesso",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

@@ -1,0 +1,145 @@
+{
+    "name": "09 - Retry Automático de Falhas",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "hours",
+                            "hours": 1
+                        }
+                    ]
+                }
+            },
+            "name": "Check Hourly",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "command": "ls /home/ubuntu/incubadora/output/failed_*.json 2>/dev/null || echo 'none'"
+            },
+            "name": "Verificar Falhas",
+            "type": "n8n-nodes-base.executeCommand",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{$json.stdout}}",
+                            "operation": "notContains",
+                            "value2": "none"
+                        }
+                    ]
+                }
+            },
+            "name": "Há Falhas?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "command": "cd /home/ubuntu/incubadora && python3 run_agents.py --retry"
+            },
+            "name": "Reprocessar",
+            "type": "n8n-nodes-base.executeCommand",
+            "typeVersion": 1,
+            "position": [
+                850,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "content": "🔄 Reprocessamento concluído!"
+            },
+            "name": "Retry Sucesso",
+            "type": "n8n-nodes-base.noOp",
+            "typeVersion": 1,
+            "position": [
+                1050,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "content": "👌 Sem falhas pendentes"
+            },
+            "name": "Sem Falhas",
+            "type": "n8n-nodes-base.noOp",
+            "typeVersion": 1,
+            "position": [
+                850,
+                200
+            ]
+        }
+    ],
+    "connections": {
+        "Check Hourly": {
+            "main": [
+                [
+                    {
+                        "node": "Verificar Falhas",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Verificar Falhas": {
+            "main": [
+                [
+                    {
+                        "node": "Há Falhas?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Há Falhas?": {
+            "main": [
+                [
+                    {
+                        "node": "Sem Falhas",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Reprocessar",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Reprocessar": {
+            "main": [
+                [
+                    {
+                        "node": "Retry Sucesso",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

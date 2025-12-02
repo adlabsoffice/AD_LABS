@@ -1,0 +1,16 @@
+SUBJECT: Request for Service Quota Increase - G Instances
+
+Hi AWS Support Team,
+
+I am working on an AI research project using ComfyUI for image generation.
+I have successfully secured AWS Credits for this project and I am trying to launch a 'g4dn.xlarge' instance in us-east-1.
+
+However, I am receiving a "Launch Failed" error because my account seems to have a vCPU quota of 0 for G instances.
+
+Could you please increase my quota for "Running On-Demand G instances" (L-DB2E81BA) in the US East (N. Virginia) region?
+
+Requested Quota: 8 vCPUs (enough for 2x g4dn.xlarge or 1x g4dn.2xlarge)
+
+Use Case: Running open-source AI models (Stable Diffusion) for a content automation pipeline.
+
+Thank you!

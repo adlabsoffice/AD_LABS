@@ -1,0 +1,429 @@
+{
+  "named_endpoints": {
+    "/generate_speech": {
+      "parameters": [
+        {
+          "label": "Input Text",
+          "parameter_name": "text",
+          "parameter_has_default": false,
+          "parameter_default": null,
+          "type": {
+            "type": "string"
+          },
+          "python_type": {
+            "type": "str",
+            "description": ""
+          },
+          "component": "Textbox",
+          "example_input": "Hello!!"
+        },
+        {
+          "label": "Select Voice",
+          "parameter_name": "voice_name",
+          "parameter_has_default": true,
+          "parameter_default": "Benedict",
+          "type": {
+            "type": "string",
+            "enum": [
+              "Benedict",
+              "dave",
+              "Elon Musk",
+              "jo",
+              "Morgan",
+              "Trump"
+            ]
+          },
+          "python_type": {
+            "type": "Literal['Benedict', 'dave', 'Elon Musk', 'jo', 'Morgan', 'Trump']",
+            "description": ""
+          },
+          "component": "Dropdown",
+          "example_input": "Benedict"
+        },
+        {
+          "label": "Speed",
+          "parameter_name": "speed",
+          "parameter_has_default": true,
+          "parameter_default": 1.0,
+          "type": {
+            "type": "number",
+            "description": "numeric value between 0.5 and 2.0"
+          },
+          "python_type": {
+            "type": "float",
+            "description": ""
+          },
+          "component": "Slider",
+          "example_input": 0.5
+        }
+      ],
+      "returns": [
+        {
+          "label": "Progress",
+          "type": {
+            "type": "number",
+            "description": "numeric value between 0 and 100"
+          },
+          "python_type": {
+            "type": "float",
+            "description": "numeric value between 0 and 100"
+          },
+          "component": "Slider"
+        },
+        {
+          "label": "Output",
+          "type": {
+            "$defs": {
+              "FileDataMeta": {
+                "properties": {
+                  "_type": {
+                    "const": "gradio.FileData",
+                    "title": "Type",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "_type"
+                ],
+                "title": "FileDataMeta",
+                "type": "object"
+              }
+            },
+            "properties": {
+              "path": {
+                "title": "Path",
+                "type": "string"
+              },
+              "url": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Url"
+              },
+              "size": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Size"
+              },
+              "orig_name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Orig Name"
+              },
+              "mime_type": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Mime Type"
+              },
+              "is_stream": {
+                "default": false,
+                "title": "Is Stream",
+                "type": "boolean"
+              },
+              "meta": {
+                "$ref": "#/$defs/FileDataMeta"
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "title": "FileData",
+            "type": "object",
+            "additional_description": "The FileData class is a subclass of the GradioModel class that represents a file object within a Gradio interface. It is used to store file data and metadata when a file is uploaded.\n\nAttributes:\n    path: The server file path where the file is stored.\n    url: The normalized server URL pointing to the file.\n    size: The size of the file in bytes.\n    orig_name: The original filename before upload.\n    mime_type: The MIME type of the file.\n    is_stream: Indicates whether the file is a stream.\n    meta: Additional metadata used internally (should not be changed)."
+          },
+          "python_type": {
+            "type": "filepath",
+            "description": ""
+          },
+          "component": "Audio"
+        },
+        {
+          "label": "Generation Status",
+          "type": {
+            "type": "string"
+          },
+          "python_type": {
+            "type": "str",
+            "description": ""
+          },
+          "component": "Textbox"
+        },
+        {
+          "label": "Status",
+          "type": {
+            "type": "string"
+          },
+          "python_type": {
+            "type": "str",
+            "description": ""
+          },
+          "component": "Textbox"
+        }
+      ],
+      "show_api": true,
+      "description": ""
+    },
+    "/delete_voice": {
+      "parameters": [
+        {
+          "label": "Select Voice",
+          "parameter_name": "voice_name",
+          "parameter_has_default": true,
+          "parameter_default": "Benedict",
+          "type": {
+            "type": "string",
+            "enum": [
+              "Benedict",
+              "dave",
+              "Elon Musk",
+              "jo",
+              "Morgan",
+              "Trump"
+            ]
+          },
+          "python_type": {
+            "type": "Literal['Benedict', 'dave', 'Elon Musk', 'jo', 'Morgan', 'Trump']",
+            "description": ""
+          },
+          "component": "Dropdown",
+          "example_input": "Benedict"
+        }
+      ],
+      "returns": [
+        {
+          "label": "Status",
+          "type": {
+            "type": "string"
+          },
+          "python_type": {
+            "type": "str",
+            "description": ""
+          },
+          "component": "Textbox"
+        },
+        {
+          "label": "Select Voice",
+          "type": {
+            "type": "string",
+            "enum": [
+              "Benedict",
+              "dave",
+              "Elon Musk",
+              "jo",
+              "Morgan",
+              "Trump"
+            ]
+          },
+          "python_type": {
+            "type": "Literal['Benedict', 'dave', 'Elon Musk', 'jo', 'Morgan', 'Trump']",
+            "description": ""
+          },
+          "component": "Dropdown"
+        }
+      ],
+      "show_api": true,
+      "description": "Deletes a voice and its associated files."
+    },
+    "/clone_voice": {
+      "parameters": [
+        {
+          "label": "New Voice Name",
+          "parameter_name": "new_name",
+          "parameter_has_default": false,
+          "parameter_default": null,
+          "type": {
+            "type": "string"
+          },
+          "python_type": {
+            "type": "str",
+            "description": ""
+          },
+          "component": "Textbox",
+          "example_input": "Hello!!"
+        },
+        {
+          "label": "Reference Text (same text spoken in sample)",
+          "parameter_name": "txt",
+          "parameter_has_default": false,
+          "parameter_default": null,
+          "type": {
+            "type": "string"
+          },
+          "python_type": {
+            "type": "str",
+            "description": ""
+          },
+          "component": "Textbox",
+          "example_input": "Hello!!"
+        },
+        {
+          "label": "Reference Audio (.wav)",
+          "parameter_name": "audio_file",
+          "parameter_has_default": false,
+          "parameter_default": null,
+          "type": {
+            "$defs": {
+              "FileDataMeta": {
+                "properties": {
+                  "_type": {
+                    "const": "gradio.FileData",
+                    "title": "Type",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "_type"
+                ],
+                "title": "FileDataMeta",
+                "type": "object"
+              }
+            },
+            "properties": {
+              "path": {
+                "title": "Path",
+                "type": "string"
+              },
+              "url": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Url"
+              },
+              "size": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Size"
+              },
+              "orig_name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Orig Name"
+              },
+              "mime_type": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Mime Type"
+              },
+              "is_stream": {
+                "default": false,
+                "title": "Is Stream",
+                "type": "boolean"
+              },
+              "meta": {
+                "$ref": "#/$defs/FileDataMeta"
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "title": "FileData",
+            "type": "object",
+            "additional_description": "The FileData class is a subclass of the GradioModel class that represents a file object within a Gradio interface. It is used to store file data and metadata when a file is uploaded.\n\nAttributes:\n    path: The server file path where the file is stored.\n    url: The normalized server URL pointing to the file.\n    size: The size of the file in bytes.\n    orig_name: The original filename before upload.\n    mime_type: The MIME type of the file.\n    is_stream: Indicates whether the file is a stream.\n    meta: Additional metadata used internally (should not be changed)."
+          },
+          "python_type": {
+            "type": "filepath",
+            "description": "The FileData class is a subclass of the GradioModel class that represents a file object within a Gradio interface. It is used to store file data and metadata when a file is uploaded.\n\nAttributes:\n    path: The server file path where the file is stored.\n    url: The normalized server URL pointing to the file.\n    size: The size of the file in bytes.\n    orig_name: The original filename before upload.\n    mime_type: The MIME type of the file.\n    is_stream: Indicates whether the file is a stream.\n    meta: Additional metadata used internally (should not be changed)."
+          },
+          "component": "Audio",
+          "example_input": {
+            "path": "https://github.com/gradio-app/gradio/raw/main/test/test_files/audio_sample.wav",
+            "meta": {
+              "_type": "gradio.FileData"
+            },
+            "orig_name": "audio_sample.wav",
+            "url": "https://github.com/gradio-app/gradio/raw/main/test/test_files/audio_sample.wav"
+          }
+        }
+      ],
+      "returns": [
+        {
+          "label": "Status",
+          "type": {
+            "type": "string"
+          },
+          "python_type": {
+            "type": "str",
+            "description": ""
+          },
+          "component": "Textbox"
+        },
+        {
+          "label": "Select Voice",
+          "type": {
+            "type": "string",
+            "enum": [
+              "Benedict",
+              "dave",
+              "Elon Musk",
+              "jo",
+              "Morgan",
+              "Trump"
+            ]
+          },
+          "python_type": {
+            "type": "Literal['Benedict', 'dave', 'Elon Musk', 'jo', 'Morgan', 'Trump']",
+            "description": ""
+          },
+          "component": "Dropdown"
+        }
+      ],
+      "show_api": true,
+      "description": "Encodes a new reference voice and saves its embedding."
+    }
+  },
+  "unnamed_endpoints": {}
+}

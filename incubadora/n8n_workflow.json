@@ -1,0 +1,76 @@
+{
+    "name": "Fluxo Automacao AI - Brain & Muscle",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "hours",
+                            "hours": 8
+                        }
+                    ]
+                }
+            },
+            "name": "Agendamento (08:00)",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1,
+            300
+        ]
+    },
+    {
+        "parameters": {
+            "content": "✅ Vídeo Gerado e Postado com Sucesso!"
+        },
+        "name": "Sucesso",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1,
+        "position": [
+            650,
+            200
+        ],
+        "credentials": {
+            "telegramApi": {
+                "id": "SEU_ID_TELEGRAM",
+                "name": "Telegram account"
+            }
+        }
+    },
+    {
+        "parameters": {
+            "content": "❌ Erro na automação: {{$node[\"Executar Agentes Python\"].json[\"stderr\"]}}"
+        },
+        "name": "Erro",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1,
+        "position": [
+            650,
+            400
+        ]
+    }
+],
+"connections": {
+    "Agendamento (08:00)": {
+        "main": [
+            [
+                {
+                    "node": "Executar Agentes Python",
+                    "type": "main",
+                    "index": 0
+                }
+            ]
+        ]
+    },
+    "Executar Agentes Python": {
+        "main": [
+            [
+                {
+                    "node": "Sucesso",
+                    "type": "main",
+                    "index": 0
+                }
+            ]
+        ]
+    }
+}
+}

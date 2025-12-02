@@ -1,0 +1,27 @@
+# Secrets
+.env
+client_secret.json
+credentials.json
+token.json
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+
+# Output
+output/
+*.mp3
+*.mp4
+*.png
+*.jpg
+timeline.json
+
+# IDE
+.vscode/
+.idea/

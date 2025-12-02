@@ -1,0 +1,122 @@
+{
+    "name": "05 - Monitoramento de Saúde do Sistema",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "minutes",
+                            "minutes": 30
+                        }
+                    ]
+                }
+            },
+            "name": "Check a cada 30min",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "command": "df -h /home/ubuntu && free -m && uptime"
+            },
+            "name": "Verificar Recursos",
+            "type": "n8n-nodes-base.executeCommand",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{$json.stdout}}",
+                            "operation": "contains",
+                            "value2": "9"
+                        }
+                    ]
+                }
+            },
+            "name": "Disco > 90%?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "content": "⚠️ ALERTA: Disco quase cheio!"
+            },
+            "name": "Alerta Disco",
+            "type": "n8n-nodes-base.noOp",
+            "typeVersion": 1,
+            "position": [
+                850,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "content": "✅ Sistema OK"
+            },
+            "name": "Sistema Saudável",
+            "type": "n8n-nodes-base.noOp",
+            "typeVersion": 1,
+            "position": [
+                850,
+                200
+            ]
+        }
+    ],
+    "connections": {
+        "Check a cada 30min": {
+            "main": [
+                [
+                    {
+                        "node": "Verificar Recursos",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Verificar Recursos": {
+            "main": [
+                [
+                    {
+                        "node": "Disco > 90%?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Disco > 90%?": {
+            "main": [
+                [
+                    {
+                        "node": "Sistema Saudável",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Alerta Disco",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

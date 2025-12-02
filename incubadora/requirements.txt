@@ -1,0 +1,11 @@
+rich
+groq
+google-api-python-client
+moviepy
+rich
+python-dotenv
+requests
+boto3
+instagrapi
+pandas
+paramiko

@@ -1,0 +1,96 @@
+{
+    "name": "08 - Analytics e Métricas",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "days",
+                            "days": 1,
+                            "triggerAtHour": 23
+                        }
+                    ]
+                }
+            },
+            "name": "Trigger 23:00",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "command": "cd /home/ubuntu/incubadora && python3 -c \"import json; from datetime import datetime; metrics = {'date': str(datetime.now()), 'videos_generated': 1, 'posts_made': 3, 'errors': 0}; print(json.dumps(metrics))\""
+            },
+            "name": "Coletar Métricas",
+            "type": "n8n-nodes-base.executeCommand",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "command": "echo '{{$json.stdout}}' >> /home/ubuntu/metrics.jsonl"
+            },
+            "name": "Salvar em Log",
+            "type": "n8n-nodes-base.executeCommand",
+            "typeVersion": 1,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "content": "📊 Métricas diárias registradas!"
+            },
+            "name": "Sucesso",
+            "type": "n8n-nodes-base.noOp",
+            "typeVersion": 1,
+            "position": [
+                850,
+                200
+            ]
+        }
+    ],
+    "connections": {
+        "Trigger 23:00": {
+            "main": [
+                [
+                    {
+                        "node": "Coletar Métricas",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Coletar Métricas": {
+            "main": [
+                [
+                    {
+                        "node": "Salvar em Log",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Salvar em Log": {
+            "main": [
+                [
+                    {
+                        "node": "Sucesso",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

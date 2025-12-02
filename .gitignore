@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Outputs temporários
+outputs/
+*.mp4
+*.wav
+*.mp3
+*.jpg
+*.png
+*.webp
+
+# Credenciais
+.env
+*.key
+*.pem
+*_secret*.json
+api_keys.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Backups antigos
+old/
+backup/
+
+Neu TTS Oracle/

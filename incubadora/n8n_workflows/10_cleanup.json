@@ -1,0 +1,96 @@
+{
+    "name": "10 - Limpeza de Arquivos Temporários",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "days",
+                            "days": 1,
+                            "triggerAtHour": 2
+                        }
+                    ]
+                }
+            },
+            "name": "Trigger 02:00",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "command": "find /home/ubuntu/incubadora/output -name '*.tmp' -mtime +3 -delete && find /home/ubuntu/incubadora/output -name '*.cache' -delete"
+            },
+            "name": "Limpar Temp",
+            "type": "n8n-nodes-base.executeCommand",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "command": "du -sh /home/ubuntu/incubadora/output"
+            },
+            "name": "Verificar Espaço",
+            "type": "n8n-nodes-base.executeCommand",
+            "typeVersion": 1,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "content": "🧹 Limpeza concluída! Espaço usado: {{$json.stdout}}"
+            },
+            "name": "Sucesso",
+            "type": "n8n-nodes-base.noOp",
+            "typeVersion": 1,
+            "position": [
+                850,
+                200
+            ]
+        }
+    ],
+    "connections": {
+        "Trigger 02:00": {
+            "main": [
+                [
+                    {
+                        "node": "Limpar Temp",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Limpar Temp": {
+            "main": [
+                [
+                    {
+                        "node": "Verificar Espaço",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Verificar Espaço": {
+            "main": [
+                [
+                    {
+                        "node": "Sucesso",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

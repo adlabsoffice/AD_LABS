@@ -1,0 +1,189 @@
+{
+  "name": "05_Telegram_Control_ChatOps",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ],
+      "webhookId": "telegram-webhook-id",
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-credentials",
+          "name": "Telegram Bot Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"message\"][\"from\"][\"id\"]}}",
+              "operation": "equal",
+              "value2": "7757304726"
+            }
+          ]
+        }
+      },
+      "name": "Security Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ],
+      "notes": "Verifica se a mensagem veio do dono (Você)"
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{$json[\"message\"][\"text\"]}}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "/video",
+              "output": 0
+            },
+            {
+              "value2": "/status",
+              "output": 1
+            }
+          ]
+        }
+      },
+      "name": "Router Comandos",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=python d:\\AD_LABS\\incubadora\\run_agents.py --canal canal_teste_n8n --tema \"{{$json[\"message\"][\"text\"].replace(\"/video \", \"\")}}\""
+      },
+      "name": "Executar Fabrica",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"chat\"][\"id\"]}}",
+        "text": "🏭 **Fábrica Iniciada!**\n\nTema: {{$node[\"Telegram Trigger\"].json[\"message\"][\"text\"].replace(\"/video \", \"\")}}\n\nVou te avisar quando terminar.",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "name": "Avisar Inicio",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"chat\"][\"id\"]}}",
+        "text": "✅ **Vídeo Concluído!**\n\nConfira na pasta de saída.",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "name": "Avisar Sucesso",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"chat\"][\"id\"]}}",
+        "text": "⛔ **Acesso Negado**\n\nEste bot é privado.",
+        "additionalFields": {}
+      },
+      "name": "Acesso Negado",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        900,
+        500
+      ]
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Security Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Security Check": {
+      "main": [
+        [
+          {
+            "node": "Router Comandos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Acesso Negado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router Comandos": {
+      "main": [
+        [
+          {
+            "node": "Avisar Inicio",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Executar Fabrica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Executar Fabrica": {
+      "main": [
+        [
+          {
+            "node": "Avisar Sucesso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
