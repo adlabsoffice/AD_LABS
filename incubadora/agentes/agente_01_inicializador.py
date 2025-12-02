@@ -151,6 +151,16 @@ class Agente01Inicializador:
         }
         self.salvar_json(progress, self.progress_file)
     
+    def criar_estrutura_canal(self, config: Dict):
+        """
+        Cria a estrutura de pastas e salva o config.json a partir de um dicionário pronto.
+        Usado quando a configuração vem do SAPG ou outra fonte externa.
+        """
+        # A estrutura de pastas real é criada pelo run_agents.py ou quem chama,
+        # mas aqui podemos garantir que o output_path (outputs/) exista se for usado.
+        self.criar_estrutura_outputs()
+        return config
+
     def executar(self, nicho: Optional[str] = None) -> Dict:
         """
         Método principal - executa o agente inicializador.

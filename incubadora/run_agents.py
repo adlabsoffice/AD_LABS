@@ -4,7 +4,7 @@ import json
 import argparse
 from rich.console import Console
 from rich.panel import Panel
-from rich.prompt import Confirm
+from rich.prompt import Confirm, Prompt
 
 import requests
 from dotenv import load_dotenv
@@ -77,16 +77,64 @@ def main():
     except SystemExit:
         # Se não encontrou config, pergunta se quer criar (T=0)
         console.print(f"\n[bold yellow]⚠ Configuração do canal '{args.canal}' não encontrada.[/bold yellow]")
-        if Confirm.ask("Deseja iniciar o Agente 01 para configurar este canal agora?"):
+        
+        # Menu de Opções T0
+        console.print("\n[bold white]COMO DESEJA INICIAR?[/bold white]")
+        console.print("1. [cyan]🕵️  Pesquisar Oportunidades (IA - SAPG)[/cyan]")
+        console.print("2. [green]💡 Já tenho uma Ideia (Manual)[/green]")
+        console.print("0. [red]Cancelar[/red]")
+        
+        escolha = Prompt.ask("\n> ", choices=["1", "2", "0"], default="1")
+        
+        if escolha == "0":
+            console.print("[red]Operação cancelada.[/red]")
+            sys.exit(1)
+            
+        config_gerada = None
+        
+        if escolha == "1":
+            # Opção 1: SAPG (Pesquisa IA)
+            console.print("\n[bold cyan]🧠 INICIANDO SAPG (Super Agente de Pesquisa Global)...[/bold cyan]")
+            try:
+                from agentes.sapg import SAPG
+                from agentes.agente_01_inicializador import Agente01Inicializador
+                
+                sapg = SAPG()
+                agente01 = Agente01Inicializador()
+                
+                # 1. Pesquisa
+                oportunidades = sapg.pesquisar_tendencias_globais()
+                
+                console.print("\n[bold cyan]✨ Oportunidades Encontradas:[/bold cyan]")
+                for op in oportunidades[:3]:
+                    console.print(f"{op['id']}. [bold]{op['nicho_us']}[/bold] (Score: {op['score']})")
+                    console.print(f"   🇧🇷 {op['nicho_br']}")
+                
+                # 2. Seleção
+                escolha_nicho = Prompt.ask("\n[bold green]Escolha o ID do nicho[/bold green]", choices=[str(op['id']) for op in oportunidades], default="1")
+                nicho_selecionado = next(op for op in oportunidades if str(op['id']) == escolha_nicho)
+                
+                # 3. Configuração
+                console.print(f"\n[bold green]🛠️  Gerando configuração para: {nicho_selecionado['nicho_br']}[/bold green]")
+                config_gerada = sapg.gerar_configuracao_completa(nicho_selecionado['nicho_br'])
+                
+                # Ajusta ID para o canal atual se necessário, ou mantém o gerado?
+                # Vamos forçar o ID do projeto ser o nome do canal para consistência se quiser, 
+                # mas o Agente 01 gera ID único. Vamos manter o ID do config.
+                
+            except ImportError as e:
+                console.print(f"[red]Erro ao importar SAPG: {e}[/red]")
+                sys.exit(1)
+                
+        elif escolha == "2":
+            # Opção 2: Manual (Agente 01 Clássico)
             console.print("\n[bold white]0. INICIANDO AGENTE 01 (INICIALIZADOR)...[/bold white]")
             from agentes.agente_01_inicializador import Agente01Inicializador
-            
-            # Instancia e executa
             agente01 = Agente01Inicializador()
-            # O Agente 01 por padrão salva em outputs/, mas queremos pegar o retorno e salvar no canal
             config_gerada = agente01.executar()
-            
-            # Salva no diretório do canal
+
+        # Salva Configuração
+        if config_gerada:
             base_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "canais")
             canal_path = os.path.join(base_path, args.canal)
             os.makedirs(canal_path, exist_ok=True)
@@ -97,9 +145,6 @@ def main():
                 
             console.print(f"[green]✅ Configuração salva em: {config_file}[/green]")
             config = config_gerada
-        else:
-            console.print("[red]Operação cancelada.[/red]")
-            sys.exit(1)
     
     # Notifica Inicio
     enviar_telegram(f"🏭 **Orquestrador Iniciado!**\n\n🎬 Canal: `{args.canal}`\n⚙️ Modo: `{args.modo}`")
