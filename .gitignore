@@ -50,4 +50,8 @@ incubadora/gcp-credentials.json
 incubadora/.env.aws
 *.json
 
+# Credenciais de Redes Sociais
+*CREDENCIAIS_REDES_SOCIAIS.md
+TODAS_AS_CREDENCIAIS_E_APIS.md
+
 !incubadora/config/*.json

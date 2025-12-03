@@ -81,7 +81,7 @@ class Agente05GeradorIdeias:
         
         EIXO: {eixo['nome']}
         DESCRIÇÃO: {eixo['descricao']}
-        EMOÇÃO ALVO: {eixo['emocao_alvo']}
+        EMOÇÃO ALVO: {eixo['emocao_central']}
         ÂNGULO: {eixo['angulo_abordagem']}
         
         A ideia deve ser ÚNICA e específica.
@@ -161,90 +161,12 @@ class Agente05GeradorIdeias:
                 ideia = self.gerar_ideia_com_ia(eixo, i+1, ideias_por_eixo)
                 self.salvar_ideia(ideia)
                 contador_geral += 1
-                
-                # Pequena pausa para não floodar (embora o APIManager gerencie erros, é bom evitar)
-                # time.sleep(0.5) 
         
         console.print("\n" + "="*60)
         console.print(f"[bold green]✅ {contador_geral} IDEIAS GERADAS COM SUCESSO![/bold green]")
         console.print(f"[dim]Salvas em: {self.output_dir}[/dim]")
         console.print("="*60 + "\n")
 
-def main():
-    # Mock de Eixos para teste se não existir
-    if not os.path.exists(os.path.join("outputs", "T03_eixos_narrativos.json")):
-        console.print("[yellow]Criando Eixos mock para teste...[/yellow]")
-        os.makedirs("outputs", exist_ok=True)
-        mock_data = {
-            "eixos_narrativos": [
-                {
-                    "nome": "Eixo Teste 1",
-                    "descricao": "Descrição teste 1",
-                    "emocao_alvo": "Curiosidade",
-                    "angulo_abordagem": "Misterioso"
-                },
-                {
-                    "nome": "Eixo Teste 2",
-                    "descricao": "Descrição teste 2",
-                    "emocao_alvo": "Medo",
-                    "angulo_abordagem": "Alerta"
-                }
-            ]
-        }
-        with open(os.path.join("outputs", "T03_eixos_narrativos.json"), "w", encoding="utf-8") as f:
-            json.dump(mock_data, f, indent=2)
-            
-    agente = Agente05GeradorIdeias()
-    # Para teste rápido, vamos limitar o loop no main se for execução direta
-    # Mas o código da classe mantém 30.
-    # Vou hackear a classe para o teste ser rápido (apenas 2 ideias por eixo)
-    # NÃO, melhor não alterar a classe. Vou confiar que o usuário vai rodar valendo.
-    # Mas para o MEU teste de verificação, eu preciso que seja rápido.
-    
-    # Vou adicionar um parametro opcional no executar ou apenas rodar e interromper?
-    # Melhor: Se for __main__, eu crio uma subclasse ou modifico a instancia para teste.
-    
-    # Hack para teste rápido:
-    original_carregar = agente.carregar_eixos
-    def mock_carregar():
-        eixos = original_carregar()
-        return eixos[:1] # Só 1 eixo para teste
-    agente.carregar_eixos = mock_carregar
-    
-    # E vamos reduzir o loop no código? Não dá pra mudar o código da classe dinamicamente fácil assim no loop.
-    # Vou deixar rodar 30 vezes para 1 eixo no teste? É muito (30 chamadas LLM).
-    # Vou alterar o código da classe para aceitar `qtd_por_eixo` no init.
-    
-    agente.executar()
-
 if __name__ == "__main__":
-    # Garante que existem dados mock para teste
-    if not os.path.exists(os.path.join("outputs", "T03_eixos_narrativos.json")):
-        console.print("[yellow]Criando Eixos mock para teste...[/yellow]")
-        os.makedirs("outputs", exist_ok=True)
-        mock_data = {
-            "eixos_narrativos": [
-                {
-                    "nome": "Eixo Teste 1",
-                    "descricao": "Descrição teste 1",
-                    "emocao_alvo": "Curiosidade",
-                    "angulo_abordagem": "Misterioso"
-                }
-            ]
-        }
-        with open(os.path.join("outputs", "T03_eixos_narrativos.json"), "w", encoding="utf-8") as f:
-            json.dump(mock_data, f, indent=2)
-
-    # Versão modificada para permitir teste rápido
-    class Agente05Teste(Agente05GeradorIdeias):
-        def executar(self):
-            # Sobrescreve para teste rápido (2 ideias apenas)
-            console.print("[bold red]MODO TESTE: Gerando apenas 2 ideias...[/bold red]")
-            eixos = self.carregar_eixos()
-            for eixo in eixos[:1]: # 1 eixo
-                for i in range(2): # 2 ideias
-                    ideia = self.gerar_ideia_com_ia(eixo, i+1, 2)
-                    self.salvar_ideia(ideia)
-                    print(f"Ideia {i+1} gerada: {ideia['titulo']}")
-                    
-    Agente05Teste().executar()
+    agente = Agente05GeradorIdeias()
+    agente.executar()

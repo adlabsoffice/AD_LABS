@@ -311,33 +311,6 @@ class Agente04ArquitetoEixos:
             
         except Exception as e:
             console.print(f"[bold red]❌ Erro: {e}[/bold red]")
-            raise
-
-def main():
-    """Função para teste standalone do agente."""
-    # Mock de Clusters para teste se não existir
-    if not os.path.exists(os.path.join("outputs", "T02_clusters.json")):
-        console.print("[yellow]Criando Clusters mock para teste...[/yellow]")
-        os.makedirs("outputs", exist_ok=True)
-        mock_data = {
-            "clusters": [
-                {
-                    "id": "cluster_mock_1",
-                    "nome": "Cluster Mock",
-                    "emocao_central": "Curiosidade",
-                    "descricao": "Cluster de teste",
-                    "exemplos_titulos": ["Video 1", "Video 2"]
-                }
-            ]
-        }
-        with open(os.path.join("outputs", "T02_clusters.json"), "w", encoding="utf-8") as f:
-            json.dump(mock_data, f, indent=2)
-
-    agente = Agente04ArquitetoEixos()
-    eixos = agente.executar()
-    
-    console.print("\n[bold cyan]Eixos Criados:[/bold cyan]")
-    for i, eixo in enumerate(eixos, 1):
         console.print(f"\n[bold]Eixo {i}:[/bold]")
         console.print(json.dumps(eixo, indent=2, ensure_ascii=False))
 

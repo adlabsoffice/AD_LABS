@@ -322,23 +322,12 @@ class Agente03Analista:
             
         except Exception as e:
             console.print(f"[bold red]❌ Erro: {e}[/bold red]")
-            raise
 
 def main():
+    """Teste standalone do agente."""
     agente = Agente03Analista()
-    # Mock de CSV para teste se não existir
-    if not os.path.exists(os.path.join("outputs", "T01_canais_referencias.csv")):
-        console.print("[yellow]Criando CSV mock para teste...[/yellow]")
-        os.makedirs("outputs", exist_ok=True)
-        pd.DataFrame({
-            'video_id': [f'vid{i}' for i in range(100)],
-            'titulo': ['Como ficar rico rápido'] * 20 + ['Segredos da mente milionária'] * 20 + ['Perdi tudo na bolsa'] * 20 + ['Minha rotina de estudos'] * 20 + ['Viagem para Disney'] * 20,
-            'views': [100000] * 100
-        }).to_csv(os.path.join("outputs", "T01_canais_referencias.csv"), index=False)
-        
-    resultado = agente.executar()
-    console.print("\n[bold cyan]Resumo Final:[/bold cyan]")
-    console.print(json.dumps(resultado['estatisticas'], indent=2, ensure_ascii=False))
+    agente.executar()
+
 
 if __name__ == "__main__":
     main()

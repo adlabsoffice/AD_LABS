@@ -10,6 +10,18 @@ class Agente06Visual:
     def __init__(self):
         self._load_env()
         self.api_key = os.getenv("GOOGLE_API_KEY_IMAGE")
+        
+        # Validar que pelo menos uma API está configurada
+        comfyui_url = os.getenv("COMFYUI_URL")
+        if not self.api_key and not comfyui_url:
+            raise ValueError(
+                "ERRO CRÍTICO: Nenhuma API de imagem configurada!\n"
+                "Configure pelo menos uma das opções:\n"
+                "  - GOOGLE_API_KEY_IMAGE (Imagen 4.0)\n"
+                "  - COMFYUI_URL (ComfyUI local/remoto)\n"
+                "Adicione as credenciais no arquivo .env"
+            )
+        
         # Endpoint para Imagen via Generative Language API (Beta)
         self.api_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent" 
         self.output_dir = os.path.join(os.getcwd(), "output", "images")
@@ -62,14 +74,23 @@ class Agente06Visual:
                     "arquivo": caminho_imagem
                 })
             else:
-                console.print(f"      -> [red]Falha na geracao (Usando Placeholder)[/red]")
-                # Fallback para não quebrar o Editor
-                caminho_mock = self._gerar_mock(i)
-                imagens_geradas.append({
-                    "bloco_id": i,
-                    "prompt": prompt_final,
-                    "arquivo": caminho_mock
-                })
+                # ERRO FATAL - Sem fallback para mock
+                console.print(f"      -> [bold red]ERRO FATAL: Falha na geração da imagem![/bold red]")
+                console.print(f"      -> [yellow]Bloco {i+1}: \"{descricao_visual[:50]}...\"[/yellow]")
+                console.print(f"      -> [yellow]Verifique suas credenciais de API ou configure ComfyUI[/yellow]")
+                console.print(f"      -> [dim]APIs disponíveis:[/dim]")
+                if self.api_key:
+                    console.print(f"         - Google Imagen 4.0 (configurada)")
+                if os.getenv("COMFYUI_URL"):
+                    console.print(f"         - ComfyUI em {os.getenv('COMFYUI_URL')}")
+                
+                raise RuntimeError(
+                    f"Imagem do bloco {i} não pôde ser gerada.\n"
+                    f"Prompt: {prompt_final}\n"
+                    f"Verifique configuração no .env:\n"
+                    f"  - GOOGLE_API_KEY_IMAGE\n"
+                    f"  - COMFYUI_URL"
+                )
             
             time.sleep(2) 
 
@@ -97,7 +118,12 @@ class Agente06Visual:
             caminho_thumb = self._chamar_api_imagem(prompt_thumb, 999)
         
         if not caminho_thumb:
-             caminho_thumb = self._gerar_mock(999)
+            # ERRO FATAL - Sem fallback
+            raise RuntimeError(
+                "Thumbnail não pôde ser gerada.\n"
+                f"Conceito: {conceito}\n"
+                "Verifique configuração das APIs de imagem no .env"
+            )
              
         console.print(f"      -> [green]Thumbnail Salva:[/green] {os.path.basename(caminho_thumb)}")
         return caminho_thumb
@@ -144,7 +170,8 @@ class Agente06Visual:
             prompt_id = self._queue_prompt(comfy_url, prompt)
             
             if not prompt_id:
-                return self._gerar_mock(index)
+                console.print(f"      -> [red]Erro: ComfyUI não retornou imagem[/red]")
+                return None
 
             # 2. Aguardar e Baixar Imagem
             image_data = self._get_image(comfy_url, prompt_id)
@@ -156,11 +183,12 @@ class Agente06Visual:
                     f.write(image_data)
                 return filepath
             else:
-                return self._gerar_mock(index)
+                console.print(f"      -> [red]Erro: ComfyUI não retornou imagem[/red]")
+                return None
 
         except Exception as e:
             console.print(f"      -> [red]Erro Conexão ComfyUI: {e}[/red]")
-            return self._gerar_mock(index)
+            return None
 
     def _queue_prompt(self, url, prompt_text):
         """Envia o workflow para a fila do ComfyUI."""
@@ -305,15 +333,4 @@ class Agente06Visual:
             console.print(f"      -> [red]Erro Conexão Google: {e}[/red]")
             return None
 
-    def _gerar_mock(self, index):
-        filename = f"scene_{index:03d}.png"
-        filepath = os.path.join(self.output_dir, filename)
-        try:
-            # 1x1 transparent PNG
-            transparent_png = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\xf8\xff\xff\x3f\x03\x00\x05\xfe\x02\xfe\xa7\x35\x81\x84\x00\x00\x00\x00IEND\xae\x42\x60\x82'
-            
-            with open(filepath, "wb") as f:
-                f.write(transparent_png)
-            return filepath
-        except:
-            return None
+

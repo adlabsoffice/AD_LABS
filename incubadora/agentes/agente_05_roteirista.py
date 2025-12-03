@@ -22,46 +22,51 @@ class Agente05Roteirista:
         console.print(f"[bold yellow]AGENTE 05: Escrevendo Roteiro 'Retention-First'...[/bold yellow]")
         console.print(f"   [cyan]Foco:[/cyan] Hook de 5s para '{titulo_hook}'")
         
-        # Simulação de chamada ao Gemini
-        time.sleep(2)
+        # Chamada REAL ao LLM para gerar o roteiro
+        prompt = f"""
+        Você é um Roteirista Expert em retenção para vídeos curtos (Reels/TikTok).
         
-        # Mock do Roteiro (Estrutura de Retenção)
-        roteiro = {
-            "titulo_otimizado": titulo_hook,
-            "blocos": [
-                {
-                    # HOOK (0-5s): Curiosidade Imediata. Sem "Oi galera".
-                    "tempo": "00:00-00:05",
-                    "personagem": "Jesus",
-                    "fala": "Você prefere ser rico na terra ou herdeiro do universo? A escolha é agora.",
-                    "visual": "Close extremo no rosto de Jesus, olho no olho. Corte rápido para pilha de ouro vs luz divina."
-                },
-                {
-                    # RE-HOOK (5-15s): Contexto Rápido
-                    "tempo": "00:05-00:15",
-                    "personagem": "Jesus",
-                    "fala": "O Primo Rico ensina a multiplicar moedas. Eu ensino a multiplicar vidas. Vamos ver onde ele errou.",
-                    "visual": "Jesus assistindo o vídeo do Primo Rico em um tablet holográfico. Expressão analítica."
-                },
-                {
-                    # CONTEUDO (15s+): Entrega de Valor
-                    "tempo": "00:15-00:45",
-                    "personagem": "Jesus",
-                    "fala": "Juros compostos são poderosos, mas a generosidade rende 100 por 1. O erro não é investir, é amar o investimento.",
-                    "visual": "Gráfico de juros subindo, mas sendo ultrapassado por uma árvore dourada crescendo rapidamente."
-                }
-            ]
-        }
+        CONTEXTO:
+        - Título/Hook: "{titulo_hook}"
+        - Objetivo: Segurar a atenção nos primeiros 3 segundos e manter até o final.
         
-        return roteiro
+        TAREFA:
+        Crie um roteiro JSON para um vídeo de 45-60 segundos.
+        Estrutura obrigatória:
+        1. HOOK (0-5s): Frase impactante, visual chocante.
+        2. RE-HOOK (5-15s): Contexto rápido, conexão com o espectador.
+        3. CORPO (15-45s): Entrega de valor, história ou curiosidade.
+        4. CTA (45-60s): Chamada para ação clara.
 
-    def _roteiro_mock(self):
-        # Fallback simples
-        return [
-            {
-                "tempo": "00:00",
-                "personagem": "Jesus",
-                "fala": "Pare de correr atrás do vento. Escute isso.",
-                "visual": "Jesus parando o scroll da tela com a mão."
-            }
-        ]
+        FORMATO DE SAÍDA (JSON Puro):
+        {{
+            "titulo_otimizado": "Titulo Final",
+            "blocos": [
+                {{
+                    "tempo": "00:00-00:05",
+                    "personagem": "Narrador",
+                    "fala": "Texto falado...",
+                    "visual": "Descrição visual detalhada para IA de imagem..."
+                }}
+            ]
+        }}
+        """
+
+        try:
+            # Importação tardia para evitar ciclo, ou assumindo que utils está no path
+            from utils.api_manager import APIManager
+            api = APIManager()
+            
+            console.print(f"   [cyan]Solicitando roteiro ao LLM...[/cyan]")
+            resposta_json = api.generate_json(prompt)
+            
+            if not resposta_json:
+                raise RuntimeError("LLM retornou resposta vazia para o roteiro.")
+                
+            console.print(f"      -> [green]Roteiro Gerado com Sucesso![/green]")
+            return resposta_json
+
+        except Exception as e:
+            console.print(f"      -> [bold red]ERRO FATAL: Falha ao gerar roteiro real![/bold red]")
+            console.print(f"      -> [red]{e}[/red]")
+            raise RuntimeError(f"Falha na geração do roteiro: {e}")
