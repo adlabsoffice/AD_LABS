@@ -1,0 +1,71 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "BrandBook",
+    "description": "Definição da Identidade Visual e Verbal do Canal",
+    "type": "object",
+    "required": [
+        "nome_canal",
+        "paleta_cores",
+        "fontes",
+        "tom_voz",
+        "prompt_base_imagem"
+    ],
+    "properties": {
+        "nome_canal": {
+            "type": "string"
+        },
+        "paleta_cores": {
+            "type": "object",
+            "properties": {
+                "primaria": {
+                    "type": "string",
+                    "description": "Hex code"
+                },
+                "secundaria": {
+                    "type": "string",
+                    "description": "Hex code"
+                },
+                "destaque": {
+                    "type": "string",
+                    "description": "Hex code (CTA/Alerta)"
+                },
+                "fundo": {
+                    "type": "string",
+                    "description": "Hex code"
+                }
+            },
+            "required": [
+                "primaria",
+                "destaque"
+            ]
+        },
+        "fontes": {
+            "type": "object",
+            "properties": {
+                "titulo": {
+                    "type": "string",
+                    "description": "Nome da fonte para manchetes"
+                },
+                "corpo": {
+                    "type": "string",
+                    "description": "Nome da fonte para legendas"
+                }
+            }
+        },
+        "tom_voz": {
+            "type": "string",
+            "description": "Descrição da persona (ex: 'Sábio, calmo, autoridade')"
+        },
+        "prompt_base_imagem": {
+            "type": "string",
+            "description": "Prompt base para garantir consistência visual (ex: 'Pixar style, 3d render...')"
+        },
+        "elementos_visuais": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "Lista de elementos recorrentes (ex: 'Seta vermelha', 'Emoji 3D')"
+        }
+    }
+}

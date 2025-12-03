@@ -84,12 +84,15 @@ class Agente05GeradorIdeias:
         EMOÇÃO ALVO: {eixo['emocao_central']}
         ÂNGULO: {eixo['angulo_abordagem']}
         
-        A ideia deve ser ÚNICA e específica.
+        REGRAS DE OURO (BLUEPRINT TOP 100):
+        1. TÍTULO: Entre 6 e 8 palavras. Title Case. Sem Emojis. (Ex: "I Survived 50 Hours In Antarctica")
+        2. FOCO: Creator-Centric ("Eu fiz", "Eu vi") ou Curiosidade Extrema.
+        3. THUMBNAIL: Deve ter rosto expressivo e fundo de alto contraste.
         
         Retorne JSON:
         {{
-            "titulo": "Título Altamente Clicável (max 60 chars)",
-            "thumbnail_desc": "Descrição visual da thumb",
+            "titulo": "Título Otimizado (6-8 palavras, Title Case)",
+            "thumbnail_desc": "Descrição visual da thumb (Rosto + Fundo Escuro)",
             "hook_visual": "O que acontece nos primeiros 3 segundos",
             "sinopse": "Resumo de 1 linha do conteúdo"
         }}

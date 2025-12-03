@@ -1,202 +1,115 @@
 import sys
 import os
-import json
 import argparse
 from rich.console import Console
 from rich.panel import Panel
-from rich.prompt import Confirm, Prompt
 
-import requests
-from dotenv import load_dotenv
-
-# Carrega variáveis de ambiente (.env)
-load_dotenv()
-
-# Adiciona o diretório atual ao path para importar os agentes
+# Adiciona diretório atual ao path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-# --- NOVOS AGENTES (PIPELINE DE INCUBAÇÃO) ---
+from core.orchestrator import Orchestrator
+
+# Importa agentes (IDs atualizados)
 from agentes.agente_02_pesquisador import Agente02Pesquisador
 from agentes.agente_03_analista import Agente03Analista
 from agentes.agente_04_arquiteto_eixos import Agente04ArquitetoEixos
 from agentes.agente_05_gerador_ideias import Agente05GeradorIdeias
-
-# --- AGENTES ANTIGOS (PIPELINE DE PRODUÇÃO - BACKUP/FUTURO) ---
-# Renomeados para evitar conflito de nomes
-from agentes.agente_05_roteirista import Agente05Roteirista as Agente05RoteiristaOld
-from agentes.agente_03_narrador import Agente03Narrador as Agente03NarradorOld
-from agentes.agente_06_visual import Agente06Visual
-from agentes.agente_07_editor import Agente07Editor
+from agentes.agente_06_roteirista import Agente05Roteirista as Agente06Roteirista # Classe ainda chamava 05
+from agentes.agente_07_visual import Agente06Visual as Agente07Visual # Classe chamava 06
+from agentes.agente_08_narrador import Agente03Narrador as Agente08Narrador # Classe chamava 03
 from agentes.agente_09_sound_designer import Agente09SoundDesigner
-from agentes.agente_10_director import Agente10Director
-from agentes.agente_11_archivist import Agente11Archivist
+from agentes.agente_10_editor import Agente07EditorJSON as Agente10Editor # Classe chamava 07
+from render_engine import RenderEngine
 
 console = Console()
 
-def enviar_telegram(mensagem):
-    """Envia notificação para o Telegram se configurado."""
-    token = os.getenv("TELEGRAM_BOT_TOKEN")
-    # Tenta pegar o Chat ID do arquivo ou variável (simplificado para o ID do usuário conhecido)
-    chat_id = "7757304726" 
-    
-    if not token or not chat_id:
-        return
-
-    try:
-        url = f"https://api.telegram.org/bot{token}/sendMessage"
-        payload = {"chat_id": chat_id, "text": mensagem, "parse_mode": "Markdown"}
-        requests.post(url, json=payload, timeout=5)
-    except Exception as e:
-        console.print(f"[dim]Erro ao enviar Telegram: {e}[/dim]")
-
-def carregar_config_canal(nome_canal):
-    """Carrega a configuração do canal específico."""
-    base_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "canais")
-    canal_path = os.path.join(base_path, nome_canal)
-    config_file = os.path.join(canal_path, "config.json")
-
-    if not os.path.exists(config_file):
-        console.print(f"[bold red]Erro: Configuracao nao encontrada para o canal '{nome_canal}'[/bold red]")
-        console.print(f"[dim]Caminho esperado: {config_file}[/dim]")
-        sys.exit(1)
-
-    with open(config_file, "r", encoding="utf-8") as f:
-        return json.load(f)
-
 def main():
-    parser = argparse.ArgumentParser(description="Orquestrador da Incubadora de Canais")
-    parser.add_argument("--canal", type=str, required=True, help="Nome da pasta do canal em incubadora/canais/")
-    parser.add_argument("--modo", type=str, choices=["incubacao", "producao"], default="incubacao", help="Modo de execução: 'incubacao' (T=1-4) ou 'producao' (T=5-11)")
+    parser = argparse.ArgumentParser(description="Executor de Pipeline AD_LABS v3")
+    parser.add_argument("--canal", type=str, required=True, help="Nome do canal (pasta)")
+    parser.add_argument("--fase", type=str, default="tudo", choices=["incubacao", "producao", "tudo"])
     args = parser.parse_args()
 
-    console.print(Panel.fit(f"[bold cyan]ORCHESTRATOR: Iniciando Canal '{args.canal}'[/bold cyan]"))
+    orch = Orchestrator()
+    console.print(Panel.fit(f"[bold cyan]PIPELINE EXECUTOR: {args.canal}[/bold cyan]"))
 
-    # 1. Carregar Configuração
-    try:
-        config = carregar_config_canal(args.canal)
-    except SystemExit:
-        # Se não encontrou config, pergunta se quer criar (T=0)
-        console.print(f"\n[bold yellow]⚠ Configuração do canal '{args.canal}' não encontrada.[/bold yellow]")
-        
-        # Menu de Opções T0
-        console.print("\n[bold white]COMO DESEJA INICIAR?[/bold white]")
-        console.print("1. [cyan]🕵️  Pesquisar Oportunidades (IA - SAPG)[/cyan]")
-        console.print("2. [green]💡 Já tenho uma Ideia (Manual)[/green]")
-        console.print("0. [red]Cancelar[/red]")
-        
-        escolha = Prompt.ask("\n> ", choices=["1", "2", "0"], default="1")
-        
-        if escolha == "0":
-            console.print("[red]Operação cancelada.[/red]")
-            sys.exit(1)
-            
-        config_gerada = None
-        
-        if escolha == "1":
-            # Opção 1: SAPG (Pesquisa IA)
-            console.print("\n[bold cyan]🧠 INICIANDO SAPG (Super Agente de Pesquisa Global)...[/bold cyan]")
-            try:
-                from agentes.sapg import SAPG
-                from agentes.agente_01_inicializador import Agente01Inicializador
-                
-                sapg = SAPG()
-                agente01 = Agente01Inicializador()
-                
-                # 1. Pesquisa
-                oportunidades = sapg.pesquisar_tendencias_globais()
-                
-                console.print("\n[bold cyan]✨ Oportunidades Encontradas:[/bold cyan]")
-                for op in oportunidades[:3]:
-                    console.print(f"{op['id']}. [bold]{op['nicho_us']}[/bold] (Score: {op['score']})")
-                    console.print(f"   🇧🇷 {op['nicho_br']}")
-                
-                # 2. Seleção
-                escolha_nicho = Prompt.ask("\n[bold green]Escolha o ID do nicho[/bold green]", choices=[str(op['id']) for op in oportunidades], default="1")
-                nicho_selecionado = next(op for op in oportunidades if str(op['id']) == escolha_nicho)
-                
-                # 3. Configuração
-                console.print(f"\n[bold green]🛠️  Gerando configuração para: {nicho_selecionado['nicho_br']}[/bold green]")
-                config_gerada = sapg.gerar_configuracao_completa(nicho_selecionado['nicho_br'])
-                
-                # Ajusta ID para o canal atual se necessário, ou mantém o gerado?
-                # Vamos forçar o ID do projeto ser o nome do canal para consistência se quiser, 
-                # mas o Agente 01 gera ID único. Vamos manter o ID do config.
-                
-            except ImportError as e:
-                console.print(f"[red]Erro ao importar SAPG: {e}[/red]")
-                sys.exit(1)
-                
-        elif escolha == "2":
-            # Opção 2: Manual (Agente 01 Clássico)
-            console.print("\n[bold white]0. INICIANDO AGENTE 01 (INICIALIZADOR)...[/bold white]")
-            from agentes.agente_01_inicializador import Agente01Inicializador
-            agente01 = Agente01Inicializador()
-            config_gerada = agente01.executar()
+    # 1. Carregar Projeto via Core
+    config = orch.carregar_projeto(args.canal)
+    if not config:
+        console.print(f"[red]Erro: Projeto '{args.canal}' não encontrado. Use incubadora.py para criar.[/red]")
+        sys.exit(1)
 
-        # Salva Configuração
-        if config_gerada:
-            base_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "canais")
-            canal_path = os.path.join(base_path, args.canal)
-            os.makedirs(canal_path, exist_ok=True)
-            
-            config_file = os.path.join(canal_path, "config.json")
-            with open(config_file, "w", encoding="utf-8") as f:
-                json.dump(config_gerada, f, indent=2, ensure_ascii=False)
-                
-            console.print(f"[green]✅ Configuração salva em: {config_file}[/green]")
-            config = config_gerada
-    
-    # Notifica Inicio
-    enviar_telegram(f"🏭 **Orquestrador Iniciado!**\n\n🎬 Canal: `{args.canal}`\n⚙️ Modo: `{args.modo}`")
+    console.print(f"[green]Projeto carregado: {config['nome_canal']} (ID: {config.get('id')})[/green]")
 
-    if args.modo == "incubacao":
-        # === PIPELINE DE INCUBAÇÃO (T=1 até T=4) ===
-        console.print("\n[bold yellow]=== MODO INCUBAÇÃO (T=1 -> T=4) ===[/bold yellow]")
-
-        # --- AGENTE 02: PESQUISADOR (T=1) ---
-        console.print("\n[bold white]1. INICIANDO AGENTE 02 (PESQUISADOR)...[/bold white]")
-        agente02 = Agente02Pesquisador()
+    # --- FASE 1: INCUBAÇÃO (T=1 a T=4) ---
+    if args.fase in ["incubacao", "tudo"]:
+        console.print("\n[bold yellow]=== FASE 1: INCUBAÇÃO ===[/bold yellow]")
         
-        tema = config.get("nicho", "Geral")
-        pauta = config.get("pauta_inicial", ["Tema Genérico"])[0]
-        
-        # Executa pesquisa
-        agente02.pesquisar_conteudo_base(tema, pauta)
-        
-        # --- AGENTE 03: ANALISTA (T=2) ---
-        console.print("\n[bold white]2. INICIANDO AGENTE 03 (ANALISTA)...[/bold white]")
-        agente03 = Agente03Analista()
-        agente03.executar()
+        # T=1: Pesquisador
+        console.print("\n[bold white]1. AGENTE 02 (PESQUISADOR)[/bold white]")
+        try:
+            Agente02Pesquisador().pesquisar_conteudo_base(config.get("nicho"), config.get("pauta_inicial", ["Geral"])[0])
+        except Exception as e:
+            console.print(f"[red]Erro Agente 02: {e}[/red]")
 
-        # --- AGENTE 04: ARQUITETO DE EIXOS (T=3) ---
-        console.print("\n[bold white]3. INICIANDO AGENTE 04 (ARQUITETO DE EIXOS)...[/bold white]")
-        agente04 = Agente04ArquitetoEixos()
-        agente04.executar()
+        # T=2: Analista
+        console.print("\n[bold white]2. AGENTE 03 (ANALISTA)[/bold white]")
+        Agente03Analista().executar()
 
-        # --- AGENTE 05: GERADOR DE IDEIAS (T=4) ---
-        console.print("\n[bold white]4. INICIANDO AGENTE 05 (GERADOR DE IDEIAS)...[/bold white]")
-        agente05 = Agente05GeradorIdeias()
-        agente05.executar()
+        # T=3: Arquiteto
+        console.print("\n[bold white]3. AGENTE 04 (ARQUITETO)[/bold white]")
+        Agente04ArquitetoEixos().executar()
 
-        console.print("\n[bold green]✅ INCUBAÇÃO CONCLUÍDA![/bold green]")
-        console.print("[dim]Agora você tem 150 ideias em 'outputs/T04_ideias'. Escolha uma para produzir![/dim]")
-        enviar_telegram("✅ **Incubação Concluída!**\n\n150 Ideias geradas e prontas para seleção.")
+        # T=4: Gerador de Ideias
+        console.print("\n[bold white]4. AGENTE 05 (GERADOR DE IDEIAS)[/bold white]")
+        Agente05GeradorIdeias().executar()
 
-    elif args.modo == "producao":
-        # === PIPELINE DE PRODUÇÃO (T=5 até T=11) ===
-        console.print("\n[bold yellow]=== MODO PRODUÇÃO (T=5 -> T=11) ===[/bold yellow]")
-        console.print("[red]⚠️ AVISO: Este modo requer seleção manual de uma ideia do T=4.[/red]")
-        console.print("[dim]Funcionalidade em migração para usar as novas ideias geradas.[/dim]")
+    # --- FASE 2: PRODUÇÃO (T=5 a T=11) ---
+    if args.fase in ["producao", "tudo"]:
+        console.print("\n[bold yellow]=== FASE 2: PRODUÇÃO ===[/bold yellow]")
         
-        # TODO: Implementar seleção de ideia e integração com RoteiristaOld
-        # Por enquanto, mantemos o código antigo comentado ou adaptado se necessário
-        # Mas como o fluxo mudou (Ideia -> Roteiro), o Roteirista precisa ser adaptado para receber JSON de ideia
+        # Selecionar uma ideia para produzir (Mock: pega a primeira gerada ou cria uma dummy)
+        # Em produção real, o usuário escolheria a ideia.
+        ideia_escolhida = {
+            "id": "ideia_pilot_01",
+            "titulo": "Jesus Reage: O Primo Rico",
+            "hook_visual": "Jesus chocado com grafico",
+            "sinopse": "Jesus analisa investimentos modernos.",
+            "visual_style_ref": config.get("estilo_visual", "Pixar 3D")
+        }
         
-        console.print("[yellow]Funcionalidade de produção pausada para refatoração. Use o modo 'incubacao' por enquanto.[/yellow]")
+        # T=5: Roteirista (Universal)
+        console.print("\n[bold white]5. AGENTE 06 (ROTEIRISTA)[/bold white]")
+        roteirista = Agente06Roteirista()
+        # Usa template definido na config ou 'react' por padrão
+        template = config.get("template_padrao", "react")
+        roteiro = roteirista.gerar_roteiro(ideia_escolhida, template_name=template)
+
+        # T=6: Visual (Imagens)
+        console.print("\n[bold white]6. AGENTE 07 (VISUAL)[/bold white]")
+        visual = Agente07Visual()
+        imagens = visual.gerar_visuais(roteiro, config)
+
+        # T=7: Narrador (TTS)
+        console.print("\n[bold white]7. AGENTE 08 (NARRADOR)[/bold white]")
+        narrador = Agente08Narrador()
+        audios = narrador.gerar_narracao(roteiro)
+
+        # T=8: Sound Designer (Mixagem)
+        console.print("\n[bold white]8. AGENTE 09 (SOUND DESIGNER)[/bold white]")
+        sound = Agente09SoundDesigner(config)
+        audios_mixados = sound.mixar_audio_cinema(audios, roteiro)
+
+        # T=9: Editor (JSON Timeline)
+        console.print("\n[bold white]9. AGENTE 10 (EDITOR LÓGICO)[/bold white]")
+        editor = Agente10Editor()
+        projeto_video = editor.criar_projeto_video(roteiro, imagens, audios_mixados)
+
+        # T=10: Render Engine (MP4)
+        console.print("\n[bold white]10. RENDER ENGINE (MOVIEPY)[/bold white]")
+        engine = RenderEngine()
+        video_path = engine.renderizar_projeto(os.path.join(editor.output_dir, f"{projeto_video['id']}.json"))
+        
+        console.print(f"\n[bold green]🎉 PROCESSO CONCLUÍDO! Vídeo final: {video_path}[/bold green]")
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        console.print(f"\n[bold red]ERRO FATAL: {e}[/bold red]")
-        sys.exit(1)
+    main()

@@ -136,9 +136,9 @@ class Agente06Visual:
         estilo_thumb = (
             "YouTube Thumbnail style, 8k resolution, high contrast, "
             "hyper-realistic face close-up (90% rule), "
-            "vibrant colors (Red, White, Black/Dark Gray background), "
+            "Background colors: Black, Dark Gray, or White (Blueprint Rule 58%), "
             "expressive emotion, 'Show don't tell' visual storytelling, "
-            "clean composition, rule of thirds"
+            "clean composition, rule of thirds, no text in image generation"
         )
         
         # Se o conceito não mencionar rosto, forçamos (91.3% dos virais têm rosto)

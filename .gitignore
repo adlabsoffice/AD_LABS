@@ -55,3 +55,4 @@ incubadora/.env.aws
 TODAS_AS_CREDENCIAIS_E_APIS.md
 
 !incubadora/config/*.json
+!specs/schemas/*.json

@@ -3,7 +3,11 @@
     "providers": [
       {
         "tipo": "gemini_multi_key",
-        "modelos": ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"],
+        "modelos": [
+          "gemini-2.5-flash",
+          "gemini-2.0-flash",
+          "gemini-1.5-pro"
+        ],
         "keys": [
           "GOOGLE_API_KEY_VIDEO",
           "GOOGLE_API_KEY_AUDIO",
@@ -15,26 +19,38 @@
       },
       {
         "tipo": "groq",
-        "modelos": ["llama-3.3-70b-versatile", "llama-3.1-70b-versatile"],
-        "keys": ["GROQ_API_KEY"],
+        "modelos": [
+          "llama-3.3-70b-versatile",
+          "llama-3.1-70b-versatile"
+        ],
+        "keys": [
+          "GROQ_API_KEY"
+        ],
         "custo_estimado": "Grátis (tier free)",
         "prioridade": 2
       },
       {
         "tipo": "anthropic",
-        "modelos": ["claude-3-5-haiku-20241022", "claude-3-5-sonnet-20241022"],
-        "keys": ["ANTHROPIC_API_KEY"],
+        "modelos": [
+          "claude-3-5-haiku-20241022",
+          "claude-3-5-sonnet-20241022"
+        ],
+        "keys": [
+          "ANTHROPIC_API_KEY"
+        ],
         "custo_estimado": "Alto",
         "prioridade": 3
       }
     ]
   },
-  
   "imagem": {
     "providers": [
       {
         "tipo": "imagen_multi_key",
-        "modelos": ["imagen-3.0-fast-generate-001", "imagegeneration@006"],
+        "modelos": [
+          "imagen-4.0-fast-generate-preview-06-06",
+          "imagen-3.0-fast-generate-001"
+        ],
         "keys": [
           "GOOGLE_API_KEY_IMAGE",
           "GOOGLE_API_KEY_VIDEO",
@@ -46,7 +62,9 @@
       },
       {
         "tipo": "gemini_image_gen",
-        "modelos": ["gemini-2.0-flash-exp"],
+        "modelos": [
+          "gemini-2.0-flash-exp-image-generation"
+        ],
         "keys": [
           "GOOGLE_API_KEY_IMAGE",
           "GOOGLE_API_KEY"
@@ -56,13 +74,16 @@
       }
     ]
   },
-  
   "audio_tts": {
     "providers": [
       {
         "tipo": "google_cloud_tts",
-        "modelos": ["pt-BR-Neural2-B"],
-        "keys": ["GOOGLE_API_KEY"],
+        "modelos": [
+          "pt-BR-Neural2-B"
+        ],
+        "keys": [
+          "GOOGLE_API_KEY"
+        ],
         "custo_estimado": "$16/1M caracteres",
         "prioridade": 1
       }

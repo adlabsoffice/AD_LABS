@@ -72,7 +72,7 @@ class YouTubeConnector:
                     "views": view_count,
                     "descricao": item["snippet"]["description"]
                 })
-            return videos
+                return videos
 
 class Agente02Pesquisador:
     def __init__(self):

@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "T04_Ideia",
+  "description": "Contrato de dados para uma Ideia aprovada pronta para roteirização",
+  "type": "object",
+  "required": [
+    "id",
+    "titulo",
+    "hook",
+    "sinopse",
+    "visual_style_ref",
+    "status"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "ID único da ideia (ex: ideia_001)"
+    },
+    "titulo": {
+      "type": "string",
+      "description": "Título principal do vídeo (Packaging)"
+    },
+    "hook": {
+      "type": "string",
+      "description": "A frase gancho dos primeiros 3 segundos"
+    },
+    "sinopse": {
+      "type": "string",
+      "description": "Resumo do conteúdo e arco narrativo"
+    },
+    "visual_style_ref": {
+      "type": "string",
+      "description": "Referência visual específica para esta ideia (ex: 'Dark Noir', 'Pixar Bright')"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["aprovada", "rascunho", "rejeitada"],
+      "default": "aprovada"
+    },
+    "pesquisa_base": {
+      "type": "object",
+      "description": "Dados da pesquisa que originou a ideia",
+      "properties": {
+        "video_ref_url": { "type": "string" },
+        "pontos_chave": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

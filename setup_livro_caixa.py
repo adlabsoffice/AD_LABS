@@ -1,24 +1,22 @@
 import os
 import sys
-# Adiciona o diretório atual ao path para importar os agentes
-sys.path.append(os.getcwd())
 
-from incubadora.agentes.agente_01_inicializador import Agente01Inicializador
+# Adiciona o diretório incubadora ao path para importar o core
+sys.path.append(os.path.join(os.getcwd(), "incubadora"))
 
-config = {
+from core.orchestrator import Orchestrator
+
+# Configuração Hardcoded (Batch Mode)
+config_livro_caixa = {
+    "id": "proj_livro_caixa_001",
     "nome_canal": "O Livro Caixa Divino",
     "nicho": "Prosperidade Bíblica / Finanças",
     "estilo_visual": "Pixar 3D (Jesus Moderno)",
-    "descricao": "Segredos milenares da prosperidade bíblica aplicados ao mundo moderno. Estratégia de vida baseada na sabedoria do maior CEO que já existiu.",
+    "descricao": "Segredos milenares da prosperidade bíblica aplicados ao mundo moderno.",
     "voz": "pt-BR-Neural-Male (Tom Sábio e Jovem)",
-    "provider_imagens": "AWS EC2 Spot (Flux.1 - LoRA Pixar)",
-    "duracao_ideal": "4-6 minutos (React)",
-    "formato_video": "LONGO (16:9)",
-    "transicoes_ritmo": "Dinâmica (React)",
-    "efeitos_visuais": "Pop-ups de Notícias/Gráficos + Reações 3D",
-    "audio_musica": "AUTOMÁTICO (Trilha Suave -> Tensão -> Resolução)",
-    "frequencia_upload": "2x Semana",
-    "thumb_estrategia": "Jesus (Pixar) com expressão de dúvida/choque + Print do Primo Rico + Seta Vermelha",
+    "provider_imagens": "imagen-4.0-fast", # Atualizado para padrão moderno
+    "duracao_ideal": "4-6 minutos",
+    "formato_video": "16:9",
     "pauta_inicial": [
         "Jesus Reage: O Primo Rico ensinou errado?",
         "Salomão vs Warren Buffett: Quem investe melhor?",
@@ -26,5 +24,17 @@ config = {
     ]
 }
 
-agente = Agente01Inicializador()
-agente.criar_estrutura_canal(config)
+def main():
+    print("🚀 Iniciando Setup Batch: O Livro Caixa Divino...")
+    
+    orch = Orchestrator()
+    
+    # Inicia o projeto usando o Core Unificado
+    # Isso vai criar pastas, salvar config.json e preparar para execução
+    config_gerada = orch.iniciar_projeto(config_livro_caixa, modo="batch")
+    
+    print(f"✅ Setup concluído em: {config_gerada['paths']['root']}")
+    print("Agora você pode rodar: python incubadora/run_agents.py --canal 'o_livro_caixa_divino'")
+
+if __name__ == "__main__":
+    main()
