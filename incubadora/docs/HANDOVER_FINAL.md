@@ -1,8 +1,8 @@
 # 🚀 HANDOVER: High-Quality Video Pipeline
 
 **Data:** 04/12/2024  
-**Status:** ✅ Nutshell Style Implementado | ⏳ Coqui XTTS em Deploy  
-**Próximo Passo:** Aguardar build do Coqui XTTS terminar e fazer deploy no Cloud Run
+**Status:** ✅ Nutshell Style Implementado | ❌ Coqui XTTS Deploy Failed  
+**Próximo Passo:** Escolher solução alternativa para TTS (opções no final)
 
 ---
 
@@ -31,17 +31,78 @@
 
 ---
 
-## 📋 Estado Atual do Deploy
+## 📋 Estado Atual do Deploy (FALHOU)
 
-**Comando rodando:**
-```powershell
-gcloud builds submit --tag gcr.io/fast-circle-479719-h8/coqui-xtts
+**Build:** ✅ Concluído (imagem `gcr.io/fast-circle-479719-h8/coqui-xtts`)
+**Deploy:** ❌ Falhou - Health check timeout
+
+**Problema:**
+- Cloud Run exige que o container inicie em <60s
+- Modelo XTTS (2GB) demora ~3-5min para baixar na primeira execução
+- Health check falha antes do modelo terminar de baixar
+
+**Tentativas:**
+1. Timeout 300s: Falhou
+2. Timeout 600s + no-cpu-throttling: Falhou
+
+**Log de Erro:**
+```
+The user-provided container failed to start and listen on the port
+defined provided by the PORT=8080 environment variable within the
+allocated timeout.
 ```
 
-**Quando terminar:**
-1. Rodar: `gcloud run deploy coqui-xtts --image gcr.io/fast-circle-479719-h8/coqui-xtts --region us-central1 --allow-unauthenticated`
-2. Copiar a URL retornada (ex: `https://coqui-xtts-abc.run.app`)
-3. Configurar no sistema via variável de ambiente `COQUI_XTTS_URL`
+---
+
+## 🔧 Soluções Alternativas
+
+### Opção 1: Compute Engine (VM) - RECOMENDADO
+**Prós:**
+- Modelo baixa uma vez e fica em disco
+- Sem limite de startup timeout
+- Mesma API (só muda a URL)
+
+**Contras:**
+- Precisa ficar ligado (custo fixo ~$20/mês)
+- Mais complexo de gerenciar
+
+**Como fazer:**
+1. Criar VM: `gcloud compute instances create coqui-xtts --machine-type=e2-medium`
+2. SSH na VM: `gcloud compute ssh coqui-xtts`
+3. Instalar Docker e rodar o container
+4. Criar IP estático
+
+### Opção 2: Usar ElevenLabs (Pago)
+**Prós:**
+- API pronta, sem deploy
+- Qualidade excelente
+- Startup instantâneo
+
+**Contras:**
+- $5/mês (30k caracteres)
+
+**Como fazer:**
+1. Criar conta: https://elevenlabs.io
+2. Pegar API key
+3. Configurar no `.env`: `ELEVENLABS_API_KEY=...`
+4. Agente já suporta (está no código)
+
+### Opção 3: Usar Google Cloud TTS (Atual)
+**Prós:**
+- Já funciona
+- Grátis/barato
+
+**Contras:**
+- Voz robótica (sem emoção)
+
+---
+
+## ❓ Decisão Necessária (Próxima Conversa)
+
+Escolha uma opção:
+1. **VM** para Coqui XTTS (grátis, mas mais trabalho)
+2. **ElevenLabs** (pago $5/mês, zero config)
+3. **Manter Google TTS** (funcional, mas voz fraca)
 
 ---
 
