@@ -1,336 +1,191 @@
+"""
+Agente 07 - Diretora Visual
+
+REFATORADO: 04/12/2024
+- Separação de responsabilidades (SRP)
+- Injeção de dependências (DIP)
+- Validação com Pydantic schemas (ISP)
+
+Resolver problemas identificados na auditoria:
+1. Inconsistência visual de personagens
+2. Acoplamento a APIs concretas
+3. Falta de validação de contratos
+"""
+
 import os
 import time
-import json
-import requests
+import logging
+from pathlib import Path
+from typing import Optional, Dict, List
 from rich.console import Console
 
+# Imports de serviços (DIP - Dependency Inversion)
+from utils.character_manager import CharacterManager
+from services.image_generation import ImageServiceFactory, ImageGenerationService
+from specs.schemas.video_pipeline import (
+    VideoScript, 
+    SceneBlock, 
+    ImageGenerationConfig
+)
+
 console = Console()
+logger = logging.getLogger(__name__)
 
-class Agente06Visual:
-    def __init__(self):
-        self._load_env()
-        self.api_key = os.getenv("GOOGLE_API_KEY_IMAGE")
-        
-        # Validar que pelo menos uma API está configurada
-        comfyui_url = os.getenv("COMFYUI_URL")
-        if not self.api_key and not comfyui_url:
-            raise ValueError(
-                "ERRO CRÍTICO: Nenhuma API de imagem configurada!\n"
-                "Configure pelo menos uma das opções:\n"
-                "  - GOOGLE_API_KEY_IMAGE (Imagen 4.0)\n"
-                "  - COMFYUI_URL (ComfyUI local/remoto)\n"
-                "Adicione as credenciais no arquivo .env"
-            )
-        
-        # Endpoint para Imagen via Generative Language API (Beta)
-        self.api_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent" 
-        self.output_dir = os.path.join(os.getcwd(), "output", "images")
-        
-        if not os.path.exists(self.output_dir):
-            os.makedirs(self.output_dir)
 
-    def _load_env(self):
-        """Carrega variáveis do .env manualmente."""
-        env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
-        if os.path.exists(env_path):
-            with open(env_path, "r") as f:
-                for line in f:
-                    if "=" in line and not line.startswith("#"):
-                        key, value = line.strip().split("=", 1)
-                        os.environ[key] = value
-
-    def gerar_visuais(self, roteiro, config={}):
+class Agente07Visual:
+    """
+    Diretora Visual - Gera imagens consistentes para o vídeo.
+    
+    Responsabilidades (SRP):
+    - Orquestrar geração de visuais
+    - Aplicar estilo do canal
+    - Gerar thumbnail
+    
+    NÃO é responsável por:
+    - Consistência de personagens (CharacterManager)
+    - Chamadas diretas a APIs (ImageGenerationService)
+    """
+    
+    def __init__(
+        self,
+        canal_id: str,
+        character_manager: Optional[CharacterManager] = None,
+        image_service: Optional[ImageGenerationService] = None,
+        config: Optional[Dict] = None
+    ):
         """
-        Gera imagens para cada bloco do roteiro.
+        Inicializa Agente Visual com injeção de dependências.
+        
+        Args:
+            canal_id: ID do canal (ex: "o_livro_caixa_divino")
+            character_manager: Gerenciador de personagens (cria automaticamente se None)
+            image_service: Serviço de geração de imagens (cria automaticamente se None)
+            config: Configurações customizadas
         """
-        provider = config.get("provider_imagens", "Google Imagen")
-        console.print(f"[bold yellow]AGENTE 06: Iniciando Geracao Visual ({provider})...[/bold yellow]")
+        self.canal_id = canal_id
+        self.config = config or {}
         
-        imagens_geradas = []
-
-        for i, bloco in enumerate(roteiro if isinstance(roteiro, list) else roteiro.get("blocos", [])):
-            descricao_visual = bloco.get("visual", "")
-            if not descricao_visual:
-                continue
-
-            # Engenharia de Prompt para Estilo Pixar
-            prompt_final = self._otimizar_prompt(descricao_visual)
-            
-            console.print(f"   [cyan]Bloco {i+1}:[/cyan] \"{descricao_visual[:30]}...\"")
-            console.print(f"      -> [dim]Prompt: {prompt_final[:50]}...[/dim]")
-            
-            # Decisão de Provider
-            caminho_imagem = None
-            if "ComfyUI" in provider:
-                caminho_imagem = self._chamar_comfyui(prompt_final, i)
-            else:
-                caminho_imagem = self._chamar_api_imagem(prompt_final, i)
-            
-            if caminho_imagem:
-                console.print(f"      -> [green]Imagem Salva:[/green] {os.path.basename(caminho_imagem)}")
-                imagens_geradas.append({
-                    "bloco_id": i,
-                    "prompt": prompt_final,
-                    "arquivo": caminho_imagem
-                })
-            else:
-                # ERRO FATAL - Sem fallback para mock
-                console.print(f"      -> [bold red]ERRO FATAL: Falha na geração da imagem![/bold red]")
-                console.print(f"      -> [yellow]Bloco {i+1}: \"{descricao_visual[:50]}...\"[/yellow]")
-                console.print(f"      -> [yellow]Verifique suas credenciais de API ou configure ComfyUI[/yellow]")
-                console.print(f"      -> [dim]APIs disponíveis:[/dim]")
-                if self.api_key:
-                    console.print(f"         - Google Imagen 4.0 (configurada)")
-                if os.getenv("COMFYUI_URL"):
-                    console.print(f"         - ComfyUI em {os.getenv('COMFYUI_URL')}")
-                
-                raise RuntimeError(
-                    f"Imagem do bloco {i} não pôde ser gerada.\n"
-                    f"Prompt: {prompt_final}\n"
-                    f"Verifique configuração no .env:\n"
-                    f"  - GOOGLE_API_KEY_IMAGE\n"
-                    f"  - COMFYUI_URL"
-                )
-            
-            time.sleep(2) 
-
-        return imagens_geradas
-
-    def gerar_thumbnail(self, packaging):
-        """
-        Gera a thumbnail do vídeo seguindo as regras do Top 100.
-        """
-        console.print(f"[bold yellow]AGENTE 06: Gerando Thumbnail (Top 100 Strategy)...[/bold yellow]")
+        # Injeção de dependências (DIP)
+        self.character_manager = character_manager or CharacterManager(canal_id=canal_id)
         
-        titulo = packaging.get('titulo_hook', '')
-        conceito = packaging.get('thumbnail_concept', '')
+        provider = self.config.get("image_provider", "imagen")
+        self.image_service = image_service or ImageServiceFactory.create(provider=provider)
         
-        # Engenharia de Prompt Específica para Thumbnails (Arquivo 11)
-        prompt_thumb = self._otimizar_prompt_thumbnail(conceito, titulo)
-        
-        console.print(f"      -> [dim]Prompt Thumb: {prompt_thumb[:50]}...[/dim]")
-        
-        # Usa o mesmo provider configurado
-        # Se estiver usando ComfyUI, usa ele também para a thumb
-        if "ComfyUI" in self.config.get("provider_imagens", ""):
-            caminho_thumb = self._chamar_comfyui(prompt_thumb, 999)
-        else:
-            caminho_thumb = self._chamar_api_imagem(prompt_thumb, 999)
-        
-        if not caminho_thumb:
-            # ERRO FATAL - Sem fallback
-            raise RuntimeError(
-                "Thumbnail não pôde ser gerada.\n"
-                f"Conceito: {conceito}\n"
-                "Verifique configuração das APIs de imagem no .env"
-            )
-             
-        console.print(f"      -> [green]Thumbnail Salva:[/green] {os.path.basename(caminho_thumb)}")
-        return caminho_thumb
-
-    def _otimizar_prompt_thumbnail(self, conceito, titulo):
-        """
-        Aplica as Regras de Ouro de Thumbnails (Cores, Rostos, Contraste).
-        """
-        # Regras do Arquivo 11 (Top 100 Analysis)
-        estilo_thumb = (
-            "YouTube Thumbnail style, 8k resolution, high contrast, "
-            "hyper-realistic face close-up (90% rule), "
-            "Background colors: Black, Dark Gray, or White (Blueprint Rule 58%), "
-            "expressive emotion, 'Show don't tell' visual storytelling, "
-            "clean composition, rule of thirds, no text in image generation"
+        # Configuração de geração padrão
+        self.gen_config = ImageGenerationConfig(
+            model=self.config.get("imagen_model", "imagen-4-standard"),
+            aspect_ratio="16:9",
+            quality="hd",
+            use_character_reference=True
         )
         
-        # Se o conceito não mencionar rosto, forçamos (91.3% dos virais têm rosto)
-        if "rosto" not in conceito.lower() and "face" not in conceito.lower():
-            estilo_thumb += ", with a shocked or intrigued human face in foreground"
-            
-        return f"{estilo_thumb}, {conceito}, text overlay: '{titulo}'"
-
-    def _otimizar_prompt(self, descricao_base):
-        """
-        Adiciona modificadores de estilo Pixar/Disney 3D.
-        """
-        estilo = "Pixar style, 3d render, disney animation style, 8k, vibrant lighting, cute, expressive characters, high detail, unreal engine 5 render"
-        return f"{estilo}, {descricao_base}"
-
-    def _chamar_comfyui(self, prompt, index):
-        """
-        Chama a API do ComfyUI (Local ou Remoto).
-        """
-        # URL do ComfyUI (Pode ser parametrizado no .env)
-        comfy_url = os.getenv("COMFYUI_URL", "http://127.0.0.1:8188")
+        self.output_dir = Path("d:/AD_LABS/outputs/imagens")
+        self.output_dir.mkdir(parents=True, exist_ok=True)
         
-        console.print(f"      -> [yellow]Enviando para ComfyUI ({comfy_url})... Aguarde.[/yellow]")
+        logger.info(f"Agente07Visual inicializado para canal '{canal_id}' com provider '{provider}'")
+    
+    def gerar_visuais(self, roteiro_data: Dict, config: Optional[Dict] = None) -> List[Dict]:
+        """
+        Gera imagens para cada cena do roteiro COM consistência de personagens.
         
+        Args:
+            roteiro_data: Dicionário com dados do roteiro (será validado)
+            config: Configurações adicionais (opcional)
+            
+        Returns:
+            Lista de imagens geradas com metadados
+        """
+        console.print(f"[bold yellow]AGENTE 07: Iniciando Geração Visual Consistente...[/bold yellow]")
+        
+        # Valida roteiro com Pydantic (ISP - Interface Segregation)
         try:
-            # 1. Solicitar Geração (Queue Prompt)
-            # Payload simplificado para Text-to-Image (SDXL)
-            # Em produção, carregaria um workflow.json completo
-            prompt_id = self._queue_prompt(comfy_url, prompt)
-            
-            if not prompt_id:
-                console.print(f"      -> [red]Erro: ComfyUI não retornou imagem[/red]")
-                return None
-
-            # 2. Aguardar e Baixar Imagem
-            image_data = self._get_image(comfy_url, prompt_id)
-            
-            if image_data:
-                filename = f"scene_{index:03d}.png"
-                filepath = os.path.join(self.output_dir, filename)
-                with open(filepath, "wb") as f:
-                    f.write(image_data)
-                return filepath
-            else:
-                console.print(f"      -> [red]Erro: ComfyUI não retornou imagem[/red]")
-                return None
-
+            roteiro = VideoScript.model_validate(roteiro_data)
+            console.print(f"   ✅ Roteiro validado: {len(roteiro.scenes)} cenas")
         except Exception as e:
-            console.print(f"      -> [red]Erro Conexão ComfyUI: {e}[/red]")
-            return None
-
-    def _queue_prompt(self, url, prompt_text):
-        """Envia o workflow para a fila do ComfyUI."""
-        try:
-            # Carregar workflow template
-            workflow_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "workflow_api.json")
-            with open(workflow_path, "r", encoding="utf-8") as f:
-                workflow = json.load(f)
-
-            # Injetar Prompt (Node 6 é o Positive Prompt no padrão SD1.5)
-            # Se o workflow mudar, esse ID precisa ser atualizado
-            if "6" in workflow and "inputs" in workflow["6"]:
-                workflow["6"]["inputs"]["text"] = prompt_text
+            logger.error(f"Erro de validação no roteiro: {e}")
+            raise ValueError(f"Roteiro inválido: {e}")
+        
+        imagens_geradas = []
+        
+        # Processa cada cena
+        for i, cena in enumerate(roteiro.scenes):
+            console.print(f"\n   [cyan]Cena {i+1}/{len(roteiro.scenes)}:[/cyan] {cena.speaker}")
+            console.print(f"      Fala: \"{cena.dialogue[:50]}...\"")
+            console.print(f"      Visual: {cena.visual_prompt[:60]}...")
             
-            # Seed Aleatória
-            if "3" in workflow and "inputs" in workflow["3"]:
-                import random
-                workflow["3"]["inputs"]["seed"] = random.randint(1, 9999999999)
-
-            # Enviar para API
-            p = {"prompt": workflow}
-            data = json.dumps(p).encode('utf-8')
-            
-            # Ajuste URL para endpoint de prompt
-            if url.endswith("/"):
-                api_url = f"{url}prompt"
-            else:
-                api_url = f"{url}/prompt"
-
-            import urllib.request
-            req = urllib.request.Request(api_url, data=data)
-            with urllib.request.urlopen(req) as response:
-                return json.loads(response.read())
-
-        except Exception as e:
-            console.print(f"[red]Erro ao enfileirar no ComfyUI: {e}[/red]")
-            return None
-
-    def _get_image(self, url, prompt_response):
-        """Aguarda e baixa a imagem gerada."""
-        try:
-            prompt_id = prompt_response['prompt_id']
-            
-            # Polling do histórico
-            if url.endswith("/"):
-                history_url = f"{url}history/{prompt_id}"
-            else:
-                history_url = f"{url}/history/{prompt_id}"
-
-            import urllib.request
-            import time
-
-            console.print(f"      -> [yellow]Aguardando renderização (ID: {prompt_id})...[/yellow]")
-            
-            # Tenta por 10 minutos (CPU é lenta)
-            for _ in range(60): 
-                with urllib.request.urlopen(history_url) as response:
-                    history = json.loads(response.read())
+            try:
+                # NOVO: Injeta consistência de personagem
+                prompt_consistente = self._preparar_prompt_consistente(cena)
                 
-                if prompt_id in history:
-                    # Sucesso! Pegar nome do arquivo
-                    outputs = history[prompt_id]['outputs']
-                    for node_id in outputs:
-                        node_output = outputs[node_id]
-                        if 'images' in node_output:
-                            image_info = node_output['images'][0]
-                            filename = image_info['filename']
-                            subfolder = image_info['subfolder']
-                            folder_type = image_info['type']
-                            
-                            # Baixar Imagem
-                            data = {"filename": filename, "subfolder": subfolder, "type": folder_type}
-                            url_values = urllib.parse.urlencode(data)
-                            
-                            if url.endswith("/"):
-                                view_url = f"{url}view?{url_values}"
-                            else:
-                                view_url = f"{url}/view?{url_values}"
-                                
-                            with urllib.request.urlopen(view_url) as img_response:
-                                return img_response.read()
+                # Obtém imagem de referência se houver
+                ref_image = self.character_manager.get_reference_image(cena.speaker)
                 
-                time.sleep(10) # Espera 10s entre checks
+                # Gera imagem usando serviço injetado
+                caminho_imagem = self.image_service.generate(
+                    prompt=prompt_consistente,
+                    reference_image=ref_image,
+                    config=self.gen_config
+                )
+                
+                # Se é primeira aparição do personagem, salva como referência
+                if not ref_image and cena.speaker.lower() != "narrador":
+                    self.character_manager.save_reference(cena.speaker, str(caminho_imagem))
+                    console.print(f"      ✨ Primeira aparição de '{cena.speaker}' - salva como referência")
+                
+                console.print(f"      ✅ [green]Imagem gerada:[/green] {caminho_imagem.name}")
+                
+                imagens_geradas.append({
+                    "cena_id": i,
+                    "speaker": cena.speaker,
+                    "prompt_original": cena.visual_prompt,
+                    "prompt_consistente": prompt_consistente,
+                    "arquivo": str(caminho_imagem),
+                    "duration_seconds": cena.duration_seconds
+                })
+                
+            except Exception as e:
+                logger.error(f"Erro ao gerar imagem da cena {i+1}: {e}")
+                console.print(f"      ❌ [bold red]ERRO FATAL:[/bold red] {e}")
+                raise RuntimeError(
+                    f"Falha na geração da cena {i+1}.\n"
+                   f"Speaker: {cena.speaker}\n"
+                    f"Prompt: {cena.visual_prompt}\n"
+                    f"Erro: {e}"
+                )
             
-            return None
-
-        except Exception as e:
-            console.print(f"[red]Erro ao baixar imagem: {e}[/red]")
-            return None
-
-    def _chamar_api_imagem(self, prompt, index):
-        """
-        Tenta chamar a API do Google (Imagen 3 via Generative Language API).
-        """
-        if not self.api_key:
-            return None
-
-        allow_premium = True
-
-        # Endpoint para Imagen 4.0 (Preview)
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-preview-06-06:predict?key={self.api_key}"
+            # Delay entre requisições
+            time.sleep(2)
         
-        headers = {
-            "Content-Type": "application/json"
-        }
+        console.print(f"\n   ✅ [bold green]{len(imagens_geradas)} imagens geradas com sucesso![/bold green]")
         
-        payload = {
-            "instances": [
-                {
-                    "prompt": prompt
-                }
-            ],
-            "parameters": {
-                "sampleCount": 1,
-                "aspectRatio": "16:9"
-            }
-        }
-
-        try:
-            response = requests.post(url, headers=headers, json=payload)
+        return imagens_geradas
+    
+    def _preparar_prompt_consistente(self, cena: SceneBlock) -> str:
+        """
+        Prepara prompt com consistência de personagem + estilo do canal.
+        
+        Args:
+            cena: Bloco de cena validado (Pydantic)
             
-            if response.status_code == 200:
-                data = response.json()
-                if "predictions" in data and len(data["predictions"]) > 0:
-                    b64_image = data["predictions"][0].get("bytesBase64Encoded")
-                    if b64_image:
-                        import base64
-                        image_data = base64.b64decode(b64_image)
-                        
-                        filename = f"scene_{index:03d}.png"
-                        filepath = os.path.join(self.output_dir, filename)
-                        
-                        with open(filepath, "wb") as f:
-                            f.write(image_data)
-                        
-                        return filepath
-            
-            console.print(f"      -> [dim]Erro API Google ({response.status_code}): {response.text[:100]}...[/dim]")
-            return None
-
-        except Exception as e:
-            console.print(f"      -> [red]Erro Conexão Google: {e}[/red]")
-            return None
+        Returns:
+            Prompt otimizado e consistente
+        """
+        # 1. Injeta consistência de personagem (CharacterManager)
+        prompt_base = self.character_manager.inject_consistency(
+            prompt=cena.visual_prompt,
+            character_name=cena.speaker
+        )
+        
+        # 2. Adiciona estilo do canal (pode vir do config)
+        estilo_canal = self.config.get(
+            "visual_style",
+            "cinematic lighting, 4k quality, dramatic composition, realistic style"
+        )
+        
+        prompt_final = f"{prompt_base}, {estilo_canal}"
+        
+        return prompt_final
 
 
+# Compatibilidade com código antigo
+Agente06Visual = Agente07Visual
