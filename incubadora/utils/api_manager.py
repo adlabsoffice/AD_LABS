@@ -2,18 +2,6 @@
 Gerenciador de APIs com sistema de fallback robusto.
 """
 
-import os
-import json
-import time
-import random
-from typing import Dict, Any, Optional, List
-from rich.console import Console
-from dotenv import load_dotenv
-
-# Importa exceptions
-from .exceptions import (
-    APIError, QuotaExceededError, TimeoutError, 
-    InvalidResponseError, AllAPIsFailed
 )
 
 # Carrega env vars
