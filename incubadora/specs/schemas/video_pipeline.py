@@ -199,7 +199,7 @@ class AudioConfig(BaseModel):
         description="Tom da voz em semitons"
     )
     
-    @root_validator
+    @root_validator(skip_on_failure=True)
     def validate_fallback_chain(cls, values):
         """Garante que fallback não inclui o provider primário"""
         provider = values.get('provider')

@@ -7,5 +7,7 @@
 			"path": "../PESQUISA/agentes"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"powershell.cwd": "AD_LABS"
+	}
 }

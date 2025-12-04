@@ -21,10 +21,11 @@ from utils.api_manager import APIManager
 console = Console()
 
 class Agente05GeradorIdeias:
-    def __init__(self):
+    def __init__(self, config: Dict = None):
         self.input_file = os.path.join("outputs", "T03_eixos_narrativos.json")
         self.output_dir = os.path.join("outputs", "T04_ideias")
         self.api_manager = APIManager()
+        self.config = config or {}
         
         # Garante que diretório de saída existe
         os.makedirs(self.output_dir, exist_ok=True)
@@ -76,6 +77,11 @@ class Agente05GeradorIdeias:
     def gerar_ideia_com_ia(self, eixo: Dict, contador: int, total: int) -> Dict:
         """Gera uma ideia única baseada no eixo usando LLM."""
         
+        # Regras dinâmicas do Config ou Defaults
+        regras_top_100 = self.config.get("regras_producao", {}).get("top_100", {})
+        regra_titulo = regras_top_100.get("titulos", "Entre 6 e 8 palavras. Title Case.")
+        regra_thumb = regras_top_100.get("thumbnails", "Rosto expressivo e fundo de alto contraste.")
+        
         prompt = f"""
         Gere UMA ideia de vídeo viral para o YouTube baseada neste Eixo Narrativo:
         
@@ -84,15 +90,15 @@ class Agente05GeradorIdeias:
         EMOÇÃO ALVO: {eixo['emocao_central']}
         ÂNGULO: {eixo['angulo_abordagem']}
         
-        REGRAS DE OURO (BLUEPRINT TOP 100):
-        1. TÍTULO: Entre 6 e 8 palavras. Title Case. Sem Emojis. (Ex: "I Survived 50 Hours In Antarctica")
+        REGRAS DE OURO (DO CANAL):
+        1. TÍTULO: {regra_titulo}
         2. FOCO: Creator-Centric ("Eu fiz", "Eu vi") ou Curiosidade Extrema.
-        3. THUMBNAIL: Deve ter rosto expressivo e fundo de alto contraste.
+        3. THUMBNAIL: {regra_thumb}
         
         Retorne JSON:
         {{
-            "titulo": "Título Otimizado (6-8 palavras, Title Case)",
-            "thumbnail_desc": "Descrição visual da thumb (Rosto + Fundo Escuro)",
+            "titulo": "Título Otimizado",
+            "thumbnail_desc": "Descrição visual da thumb",
             "hook_visual": "O que acontece nos primeiros 3 segundos",
             "sinopse": "Resumo de 1 linha do conteúdo"
         }}
@@ -171,5 +177,5 @@ class Agente05GeradorIdeias:
         console.print("="*60 + "\n")
 
 if __name__ == "__main__":
-    agente = Agente05GeradorIdeias()
+    agente = Agente05GeradorIdeias(config={})
     agente.executar()

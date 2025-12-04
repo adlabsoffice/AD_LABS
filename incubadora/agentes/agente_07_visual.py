@@ -69,6 +69,14 @@ class Agente07Visual:
         self.character_manager = character_manager or CharacterManager(canal_id=canal_id)
         
         provider = self.config.get("image_provider", "imagen")
+        
+        # Style Mapper Logic (MagicLight -> Imagen)
+        self.style_mapper_active = False
+        if provider == "MagicLight.ai":
+            logger.info("Provider 'MagicLight.ai' solicitado. Ativando Style Mapper com Imagen.")
+            provider = "imagen"
+            self.style_mapper_active = True
+            
         self.image_service = image_service or ImageServiceFactory.create(provider=provider)
         
         # Configuração de geração padrão
@@ -183,6 +191,10 @@ class Agente07Visual:
         )
         
         prompt_final = f"{prompt_base}, {estilo_canal}"
+        
+        # 3. Style Mapper (MagicLight -> Pixar Style)
+        if getattr(self, "style_mapper_active", False):
+             prompt_final += ", 3D Animation Style, Pixar-like, Volumetric Lighting, Octane Render, 8k, High Fidelity"
         
         return prompt_final
 

@@ -340,7 +340,8 @@ class TTSFactory:
         strategies = {
             "google_cloud": GoogleCloudTTS,
             "chirp": ChirpTTS,
-            "elevenlabs": ElevenLabsTTS
+            "elevenlabs": ElevenLabsTTS,
+            "coqui_xtts": lambda api_key=None: __import__('services.coqui_tts_strategy', fromlist=['CoquiXTTSTTS']).CoquiXTTSTTS()
         }
         
         strategy_class = strategies.get(provider)

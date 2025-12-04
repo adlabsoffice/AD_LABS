@@ -40,21 +40,22 @@ class Agente03Analista:
     5. Salva grupos encontrados em JSON
     """
     
-    def __init__(self):
+    def __init__(self, config: Dict = None):
         self.input_path = "outputs"
         self.output_path = "outputs"
         self.csv_file = "T01_canais_referencias.csv"
         self.output_file = "T02_clusters.json"
         self.api_manager = APIManager()
+        self.config = config or {}
         
-        # Padrões emocionais (mantidos como fallback/auxiliar)
-        self.padroes_emocionais = {
+        # Padrões emocionais (Dinâmico via Config ou Fallback Genérico)
+        self.padroes_emocionais = self.config.get("padroes_emocionais", {
             "humilhação → revanche": ["zombar", "humilhar", "vingança", "justiça", "bullying"],
             "segredo → revelação": ["segredo", "descobrir", "verdade", "revelar", "esconder"],
             "medo → alívio": ["terror", "medo", "susto", "sobrevivência"],
             "injustiça → reparação": ["injusto", "cruel", "triste", "justiça"],
             "curiosidade → recompensa": ["mistério", "incrível", "surpreendente", "descoberta"]
-        }
+        })
     
     def _call_llm(self, api_key, modelo, prompt, system_prompt="Você é um analista de dados especialista em YouTube."):
         """Função auxiliar para chamar LLM via APIManager."""
@@ -325,7 +326,7 @@ class Agente03Analista:
 
 def main():
     """Teste standalone do agente."""
-    agente = Agente03Analista()
+    agente = Agente03Analista(config={})
     agente.executar()
 
 

@@ -56,20 +56,21 @@ Valor: "Prosperidade Bíblica / Finanças"
 
 ### **3.1 Preset de Estilo**
 ```
-Valor: PIXAR 3D (Jesus Moderno)
-Mood: Alegre, Sábio, Convidativo, High-End
+Valor: STOCK FOOTAGE + MOTION GRAPHICS (Bible in a Nutshell Style)
+Mood: Épico, Rápido, Tipografia Cinética, Impactante
+Referência: Canal "Bible in a Nutshell"
 ```
 
 ### **3.2 Provider de Imagens**
 ```
-Valor: AWS EC2 Spot (Flux.1 - LoRA Pixar)
-Backup: Pollinations.AI (Pixar Style)
+Valor: Stock Video (Pexels/Storyblocks) + Motion Gen
+Backup: Flux.1 (Realismo Cinematográfico para cenas específicas)
 ```
 
 ### **3.3 Transições e Ritmo**
 ```
-Ritmo Visual: Troca de cena a cada 8 segundos (MÁXIMO)
-Transições: Dinâmicas (Zoom, Slide, Fade rápido)
+Ritmo Visual: Rápido (3-5 segundos por cena)
+Transições: Cortes Secos, Glitch, Zoom Rápido (Estilo Documentário/YouTube)
 ```
 
 ### **3.4 Efeitos Visuais**

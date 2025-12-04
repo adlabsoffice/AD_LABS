@@ -54,60 +54,6 @@ def main():
         # T=1: Pesquisador
         console.print("\n[bold white]1. AGENTE 02 (PESQUISADOR)[/bold white]")
         try:
-            Agente02Pesquisador().pesquisar_conteudo_base(config.get("nicho"), config.get("pauta_inicial", ["Geral"])[0])
-        except Exception as e:
-            console.print(f"[red]Erro Agente 02: {e}[/red]")
-
-        # T=2: Analista
-        console.print("\n[bold white]2. AGENTE 03 (ANALISTA)[/bold white]")
-        Agente03Analista().executar()
-
-        # T=3: Arquiteto
-        console.print("\n[bold white]3. AGENTE 04 (ARQUITETO)[/bold white]")
-        Agente04ArquitetoEixos().executar()
-
-        # T=4: Gerador de Ideias
-        console.print("\n[bold white]4. AGENTE 05 (GERADOR DE IDEIAS)[/bold white]")
-        Agente05GeradorIdeias().executar()
-
-    # --- FASE 2: PRODUÇÃO (T=5 a T=11) ---
-    if args.fase in ["producao", "tudo"]:
-        console.print("\n[bold yellow]=== FASE 2: PRODUÇÃO ===[/bold yellow]")
-        
-        # Selecionar uma ideia para produzir (Mock: pega a primeira gerada ou cria uma dummy)
-        # Em produção real, o usuário escolheria a ideia.
-        ideia_escolhida = {
-            "id": "ideia_pilot_01",
-            "titulo": "Jesus Reage: O Primo Rico",
-            "hook_visual": "Jesus chocado com grafico",
-            "sinopse": "Jesus analisa investimentos modernos.",
-            "visual_style_ref": config.get("estilo_visual", "Pixar 3D")
-        }
-        
-        # Inicializar sistema de checkpoints
-        checkpoint = CheckpointManager(args.canal, ideia_escolhida["id"])
-        telegram = TelegramBot()
-        
-        if checkpoint.tem_checkpoint_pendente():
-            checkpoint.resumir_progresso()
-            console.print("[yellow]Detectado checkpoint anterior. Retomando de onde parou...[/yellow]")
-        
-        # T=5: Roteirista (Universal)
-        console.print("\n[bold white]5. AGENTE 06 (ROTEIRISTA)[/bold white]")
-        
-        if checkpoint.pode_pular_etapa("roteiro"):
-            console.print("[green]✓ Roteiro já aprovado anteriormente. Pulando...[/green]")
-            roteiro_path = checkpoint.obter_dados_etapa("roteiro")["arquivo"]
-            with open(roteiro_path, "r", encoding="utf-8") as f:
-                roteiro = json.load(f)
-        else:
-            roteirista = Agente06Roteirista()
-            # Usa template definido na config ou 'react' por padrão
-            template = config.get("template_padrao", "react")
-            roteiro = roteirista.gerar_roteiro(ideia_escolhida, template_name=template)
-            
-            # CHECKPOINT 1: Validação pelo Director
-            console.print("\n[bold cyan]🎬 VALIDAÇÃO DO DIRETOR (PADRÃO STOCKDALE)[/bold cyan]")
             director = Agente10Director()
             if not director.revisar_roteiro(roteiro, config):
                 console.print("[red]❌ Roteiro rejeitado pelo Director. Pipeline abortado.[/red]")

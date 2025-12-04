@@ -11,12 +11,28 @@ class TelegramBot:
     def __init__(self):
         self.token = os.getenv("TELEGRAM_BOT_TOKEN")
         
-        # Carregar Chat ID do arquivo
-        chat_id_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "telegram_id.txt")
-        if os.path.exists(chat_id_file):
-            with open(chat_id_file, "r") as f:
-                self.chat_id = f.read().strip()
-        else:
+        # Carregar Chat ID de secrets.json (Prioridade) ou arquivo legado
+        self.chat_id = None
+        
+        # 1. Tenta secrets.json (Novo Padrão)
+        secrets_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "secrets.json")
+        if os.path.exists(secrets_path):
+            try:
+                with open(secrets_path, "r") as f:
+                    secrets = json.load(f)
+                    self.chat_id = secrets.get("telegram_chat_id")
+            except Exception as e:
+                console.print(f"[yellow]Erro ao ler secrets.json: {e}[/yellow]")
+
+        # 2. Fallback para arquivo legado (se não achou no secrets)
+        if not self.chat_id:
+            chat_id_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "telegram_id.txt")
+            if os.path.exists(chat_id_file):
+                with open(chat_id_file, "r") as f:
+                    self.chat_id = f.read().strip()
+        
+        # 3. Fallback para ENV
+        if not self.chat_id:
             self.chat_id = os.getenv("TELEGRAM_CHAT_ID")
         
         self.timeout_minutos = int(os.getenv("TELEGRAM_TIMEOUT_MINUTOS", "10"))
@@ -163,53 +179,52 @@ class TelegramBot:
         Envia mensagem com botões e aguarda resposta do usuário.
         Retorna True se aprovado, False se rejeitado.
         """
-        bot = self.Bot(token=self.token)
-        reply_markup = self.InlineKeyboardMarkup(keyboard)
-        
-        # Enviar mensagem
-        try:
-            msg = bot.send_message(
-                chat_id=self.chat_id,
-                text=mensagem,
-                reply_markup=reply_markup,
-                parse_mode='Markdown'
-            )
-            console.print(f"[green]✓ Mensagem enviada para Telegram (ID: {msg.message_id})[/green]")
-        except Exception as e:
-            console.print(f"[red]ERRO ao enviar para Telegram: {e}[/red]")
-            raise RuntimeError(f"Falha na comunicação com Telegram: {e}")
-        
-        # Aguardar resposta
-        console.print(f"[yellow]⏳ Aguardando aprovação no Telegram (timeout: {self.timeout_minutos}min)...[/yellow]")
-        
-        self.response_received = None
-        resposta_esperada_prefix = f"{tipo}_"
-        
-        # Configurar handler de callback
-        async def callback_handler(update, context):
-            query = update.callback_query
-            await query.answer()
-            
-            if query.data.startswith(resposta_esperada_prefix):
-                self.response_received = query.data
-                await query.edit_message_text(f"✓ Resposta registrada: {query.data}")
-        
-        # Polling simplificado (blocking)
         import asyncio
         
-        async def aguardar_resposta():
+        async def executar_interacao():
             app = self.Application.builder().token(self.token).build()
+            
+            self.response_received = None
+            resposta_esperada_prefix = f"{tipo}_"
+            
+            # Configurar handler de callback
+            async def callback_handler(update, context):
+                query = update.callback_query
+                await query.answer()
+                
+                if query.data.startswith(resposta_esperada_prefix):
+                    self.response_received = query.data
+                    await query.edit_message_text(f"✓ Resposta registrada: {query.data}")
+
             app.add_handler(self.CallbackQueryHandler(callback_handler))
             
             await app.initialize()
             await app.start()
             
-            # Polling com timeout
+            # Enviar mensagem (Agora dentro do loop async)
+            try:
+                reply_markup = self.InlineKeyboardMarkup(keyboard)
+                msg = await app.bot.send_message(
+                    chat_id=self.chat_id,
+                    text=mensagem,
+                    reply_markup=reply_markup,
+                    parse_mode='Markdown'
+                )
+                console.print(f"[green]✓ Mensagem enviada para Telegram (ID: {msg.message_id})[/green]")
+            except Exception as e:
+                console.print(f"[red]ERRO ao enviar para Telegram: {e}[/red]")
+                await app.stop()
+                await app.shutdown()
+                raise RuntimeError(f"Falha na comunicação com Telegram: {e}")
+
+            # Aguardar resposta
+            console.print(f"[yellow]⏳ Aguardando aprovação no Telegram (timeout: {self.timeout_minutos}min)...[/yellow]")
+            
             inicio = time.time()
             timeout_segundos = self.timeout_minutos * 60
             
             while self.response_received is None:
-                await app.update_queue.get()
+                await app.update_queue.get() # Processa updates
                 await asyncio.sleep(1)
                 
                 if time.time() - inicio > timeout_segundos:
@@ -220,13 +235,13 @@ class TelegramBot:
             await app.stop()
             await app.shutdown()
             return True
-        
-        # Executar polling
+
+        # Executar tudo no loop de eventos
         try:
-            resultado = asyncio.run(aguardar_resposta())
+            resultado = asyncio.run(executar_interacao())
         except Exception as e:
-            console.print(f"[red]Erro no polling: {e}[/red]")
-            raise RuntimeError(f"Falha ao aguardar resposta: {e}")
+            console.print(f"[red]Erro no loop async: {e}[/red]")
+            raise RuntimeError(f"Falha na execução async: {e}")
         
         if not resultado:
             console.print(f"[red]⏱️ TIMEOUT! Nenhuma resposta em {self.timeout_minutos} minutos.[/red]")

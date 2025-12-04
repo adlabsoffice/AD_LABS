@@ -36,7 +36,14 @@ def list_instances():
             if len(instance.network_interfaces) > 0 and len(instance.network_interfaces[0].access_configs) > 0:
                 ip = instance.network_interfaces[0].access_configs[0].nat_i_p
             
-            console.print(f"  - [green]{instance.name}[/green] | Status: {instance.status} | IP: {ip}")
+            gpu_info = "[dim]Nenhuma GPU[/dim]"
+            if instance.guest_accelerators:
+                accel = instance.guest_accelerators[0]
+                # Limpa o nome do tipo (ex: projects/.../acceleratorTypes/nvidia-tesla-t4 -> nvidia-tesla-t4)
+                gpu_type = accel.accelerator_type.split('/')[-1]
+                gpu_info = f"[bold magenta]{accel.accelerator_count}x {gpu_type}[/bold magenta]"
+            
+            console.print(f"  - [green]{instance.name}[/green] | Status: {instance.status} | IP: {ip} | GPU: {gpu_info}")
             
         if not found:
             console.print("[yellow]Nenhuma instancia encontrada nesta zona.[/yellow]")

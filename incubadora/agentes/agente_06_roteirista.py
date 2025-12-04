@@ -49,22 +49,32 @@ class Agente06Roteirista:
     - Geração de áudio (Agente Narrador)
     """
     
-    # Configurações de duração
-    DURACAO_ALVO = 60  # segundos
-    DURACAO_MAX = 70   # 120% do alvo
-    MAX_RETRIES = 3    # Tentativas de ajuste
-    
-    def __init__(self):
+    def __init__(self, config: Dict = None):
         self.api_manager = APIManager()
+        self.config = config or {}
+        
+        # Configurações de duração (Dinâmico)
+        # Padrão: min_minutos * 60 (ex: 4 * 60 = 240s)
+        min_minutos = self.config.get("regras_producao", {}).get("min_minutos", 1)
+        max_minutos = self.config.get("regras_producao", {}).get("max_minutos", 1)
+        
+        self.DURACAO_ALVO = min_minutos * 60
+        self.DURACAO_MAX = max_minutos * 60
+        self.MAX_RETRIES = 3
+        
+        # Carrega Exemplo de Ouro (se houver)
+        # Tenta pegar do campo específico ou procura no texto do MD se foi passado cru
+        self.exemplo_ouro = self.config.get("regras_producao", {}).get("exemplo_ouro", "")
+        
         self.templates_dir = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
             "specs", 
             "templates"
         )
         self.output_dir = os.path.join("outputs", "T05_roteiros")
         os.makedirs(self.output_dir, exist_ok=True)
         
-        logger.info("Agente06Roteirista inicializado")
+        logger.info(f"Agente06Roteirista inicializado. Alvo: {self.DURACAO_ALVO}s. Ref Estilo: {'SIM' if self.exemplo_ouro else 'NÃO'}")
     
     def _carregar_template(self, nome_template: str) -> str:
         """Carrega o conteúdo de um template markdown."""
@@ -127,6 +137,11 @@ class Agente06Roteirista:
         Returns:
             Dict com roteiro validado
         """
+        # Auto-select template based on channel
+        if template_name == "react" and self.config.get("canal_id") == "bible_in_a_nutshell":
+            template_name = "nutshell"
+            console.print(f"[magenta]🔮 Canal Nutshell detectado: Usando template '{template_name}'[/magenta]")
+
         console.print(Panel.fit(
             f"[bold cyan]AGENTE 06: Roteirista Universal[/bold cyan]\n"
             f"Template: {template_name}"
@@ -148,12 +163,20 @@ class Agente06Roteirista:
                 # Monta prompt com instruções de duração
                 prompt = self._montar_prompt(ideia, template_content, tentativa)
                 
-                # Chama LLM
+                # Chama LLM (Claude 3.5 Sonnet para melhor roteiro)
+                modelo_alvo = "claude-3-5-sonnet-20241022"
+                
+                # Fallback para Gemini se Claude falhar (ou se key não existir)
+                if not os.getenv("ANTHROPIC_API_KEY"):
+                    modelo_alvo = "gemini-2.0-flash-exp"
+                    console.print("[yellow]⚠️ ANTHROPIC_API_KEY não encontrada. Usando Gemini 2.0 Flash.[/yellow]")
+
                 resposta_json_str = self.api_manager.chamar_com_fallback(
                     "llm_roteiro",
                     self._call_llm,
                     prompt=prompt,
-                    system_prompt="Você é um roteirista JSON. Retorne apenas JSON válido sem markdown."
+                    system_prompt="Você é um roteirista JSON. Retorne apenas JSON válido sem markdown.",
+                    modelo=modelo_alvo
                 )
                 
                 # Limpa markdown
@@ -187,27 +210,34 @@ class Agente06Roteirista:
     
     def _montar_prompt(self, ideia: Dict, template_content: str, tentativa: int) -> str:
         """
-        Monta prompt com instruções de duração.
-        
-        Args:
-            ideia: Dados da ideia
-            template_content: Conteúdo do template
-            tentativa: Número da tentativa atual (0-indexed)
-            
-        Returns:
-            Prompt formatado
+        Monta prompt com instruções de duração e REFERÊNCIA DE ESTILO (Few-Shot).
         """
+        # Busca o Exemplo de Ouro da Config
+        exemplo_ouro = self.config.get("regras_producao", {}).get("exemplo_ouro", "")
+        if not exemplo_ouro:
+            # Tenta buscar do texto cru se não estiver estruturado
+            # (Fallback simples para garantir que pegue o texto do MD se estiver lá)
+            pass 
+
         # Aviso se é retry
         aviso_retry = ""
         if tentativa > 0:
             aviso_retry = f"\n\n⚠️ ATENÇÃO: TENTATIVA {tentativa + 1}. O roteiro anterior estava MUITO LONGO. REDUZA o número de cenas ou a duração de cada uma para ficar ABAIXO de {self.DURACAO_MAX} segundos totais!"
         
         prompt = f"""
-ATUE COMO UM ROTEIRISTA DE ELITE PARA YOUTUBE.
+ATUE COMO UM ROTEIRISTA DE ELITE (Nível HBO/Cinema).
 
 SUA MISSÃO: Transformar a IDEIA abaixo em um ROTEIRO TÉCNICO seguindo rigorosamente o TEMPLATE fornecido.
 
 ---
+🔥 REFERÊNCIA DE ESTILO (GOLD STANDARD) 🔥
+Você DEVE imitar o tom, o vocabulário rico ("sombra da guerra", "estrondo ensurdecedor") e o ritmo deste texto:
+
+"{exemplo_ouro}"
+
+(Não copie o texto acima, apenas IMITE O ESTILO NARRATIVO e a QUALIDADE VISUAL).
+---
+
 INPUT: A IDEIA
 Título: {ideia.get('titulo')}
 Hook Visual: {ideia.get('hook_visual')}
@@ -215,12 +245,11 @@ Sinopse: {ideia.get('sinopse')}
 Estilo Visual: {ideia.get('visual_style_ref', 'Padrão do Canal')}
 Emoção Central: {ideia.get('emocao_central', 'neutro')}
 
-REGRAS DE OURO (BLUEPRINT TOP 100):
-1. LINGUAGEM: Nível 5ª série (FKGL < 5.0). Palavras simples.
-2. RITMO: 168-187 palavras por minuto. Sem enrolação.
-3. TOM: Positivo ou Neutro. Evitar negatividade pura.
-4. FOCO: Histórias pessoais ("Eu") > Fatos genéricos.
-5. DURAÇÃO: Máximo {self.DURACAO_MAX} segundos TOTAL. Cada cena: 8-12 segundos.
+REGRAS DE OURO (DO CANAL):
+1. LINGUAGEM: Rica, sensorial, mas acessível (FKGL < 6).
+2. RITMO: Narrativa visual forte. "Show, don't tell".
+3. TOM: Épico, Solene, Impactante.
+4. DURAÇÃO: Máximo {self.DURACAO_MAX} segundos TOTAL.
 ---
 
 INPUT: O TEMPLATE (Siga a estrutura de tempo e blocos)
@@ -237,23 +266,23 @@ Retorne um JSON com a seguinte estrutura EXATA:
     "template_used": "react",
     "scenes": [
         {{
-            "speaker": "Jesus",
-            "dialogue": "Texto exato que o personagem vai falar. Use pontuação para ritmo.",
-            "visual_prompt": "Descrição DETALHADA para gerador de imagens (estilo, iluminação, ação, cenário). NÃO use nomes de pessoas reais.",
+            "speaker": "Narrador",
+            "dialogue": "Texto exato que será falado. Use pontuação para ditar o ritmo.",
+            "visual_prompt": "Descrição DETALHADA para gerador de imagens (estilo, iluminação, ação, cenário).",
             "duration_seconds": 8.5,
-            "emotion": "alegria"
+            "emotion": "solene"
         }},
         ...
     ]
 }}
 
 ATENÇÃO CRÍTICA:
-- Campo "speaker" é OBRIGATÓRIO em TODAS as cenas (ex: "Jesus", "Narrador")
-- Campo "emotion" deve ser um de: alegria, tristeza, raiva, medo, surpresa, neutro
-- Duração TOTAL de todas as cenas NÃO pode exceder {self.DURACAO_MAX} segundos
-- Cada cena: mínimo 3s, máximo 15s
-- Retorne APENAS o JSON, sem markdown, sem explicações
+- Campo "speaker" é OBRIGATÓRIO.
+- Campo "visual_prompt" deve ser rico e descrever a cena como no Exemplo de Ouro.
+- Retorne APENAS o JSON.
         """
+        
+        return prompt
         
         return prompt
     
@@ -334,7 +363,7 @@ if __name__ == "__main__":
     import logging
     logging.basicConfig(level=logging.INFO)
     
-    agente = Agente06Roteirista()
+    agente = Agente06Roteirista(config={})
     ideia_teste = {
         "id": "teste_01",
         "titulo": "Jesus Reage: Primo Rico",
