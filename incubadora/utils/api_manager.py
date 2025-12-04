@@ -1,12 +1,19 @@
 """
 Gerenciador de APIs com sistema de fallback robusto.
 """
-
-)
+import os
+import json
+from typing import Dict, Any, List, Optional
+from dotenv import load_dotenv
+from rich.console import Console
+from rich.panel import Panel
 
 # Carrega env vars
 load_dotenv()
 console = Console()
+
+class AllAPIsFailed(Exception):
+    pass
 
 class APIManager:
     """

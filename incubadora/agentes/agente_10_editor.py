@@ -7,7 +7,7 @@ from rich.panel import Panel
 
 console = Console()
 
-class Agente07EditorJSON:
+class Agente10Editor:
     """
     Agente Editor Lógico (Sem GPU).
     Responsabilidade: Montar a 'Timeline' do vídeo em um arquivo JSON.

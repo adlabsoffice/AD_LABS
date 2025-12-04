@@ -19,12 +19,13 @@ from agentes.agente_02_pesquisador import Agente02Pesquisador
 from agentes.agente_03_analista import Agente03Analista
 from agentes.agente_04_arquiteto_eixos import Agente04ArquitetoEixos
 from agentes.agente_05_gerador_ideias import Agente05GeradorIdeias
-from agentes.agente_06_roteirista import Agente05Roteirista as Agente06Roteirista # Classe ainda chamava 05
-from agentes.agente_07_visual import Agente06Visual as Agente07Visual # Classe chamava 06
-from agentes.agente_08_narrador import Agente03Narrador as Agente08Narrador # Classe chamava 03
+from agentes.agente_06_roteirista import Agente06Roteirista
+from agentes.agente_07_visual import Agente07Visual
+from agentes.agente_08_narrador import Agente08Narrador
 from agentes.agente_09_sound_designer import Agente09SoundDesigner
 from agentes.agente_10_director import Agente10Director
-from agentes.agente_10_editor import Agente07EditorJSON as Agente10Editor # Classe chamava 07
+from agentes.agente_10_editor import Agente10Editor
+from agentes.agente_11_archivist import Agente11Archivist
 from render_engine import RenderEngine
 
 console = Console()
@@ -204,6 +205,14 @@ def main():
         
         console.print(f"\n[bold green]🎉 VÍDEO APROVADO E PRONTO PARA PUBLICAÇÃO![/bold green]")
         console.print(f"[bold green]Arquivo: {video_path}[/bold green]")
+
+        # T=11: Archivist (Upload & Backup)
+        console.print("\n[bold white]11. AGENTE 11 (ALMOXARIFE)[/bold white]")
+        archivist = Agente11Archivist()
+        # Passa o caminho do vídeo explicitamente
+        archivist.arquivar_projeto(config, video_path=video_path)
+        
+        console.print("\n[bold green]🏁 PIPELINE CONCLUÍDO COM SUCESSO! 🏁[/bold green]")
 
 if __name__ == "__main__":
     main()

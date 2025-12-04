@@ -8,16 +8,15 @@
 ## 🚨 REGRA DE OURO: COMUNICAÇÃO ANTES DE AÇÃO
 
 ### ⚠️ SEMPRE Fazer:
-- ✅ **Responder e perguntar ANTES de executar** qualquer ferramenta
-- ✅ **Mostrar diff completo** antes de aplicar mudanças em arquivos
-- ✅ **Explicar o que vai fazer** e aguardar confirmação do usuário
-- ✅ **Nunca assumir permissão implícita** - sempre confirmar
+1. **EXPLICAR PRIMEIRO:** Antes de qualquer comando ou mudança, explique o plano.
+2. **AGUARDAR ACORDO:** Só execute se o usuário concordar explicitamente ("pode fazer", "ok", "vá em frente").
+3. **Mostrar diff completo:** Antes de aplicar mudanças em arquivos.
+4. **Nunca assumir permissão implícita:** O silêncio não é consentimento.
 
 ### ❌ NUNCA Fazer:
-- ❌ Modificar arquivos "automaticamente" sem avisar
-- ❌ Executar ferramentas em paralelo sem explicar antes
-- ❌ Assumir que entendeu sem confirmar com o usuário
-- ❌ Prosseguir sem aprovação explícita
+- ❌ Executar comandos ou ferramentas sem explicar o "porquê" antes.
+- ❌ Modificar arquivos "automaticamente" sem avisar.
+- ❌ Assumir que entendeu sem confirmar com o usuário.
 
 > **Trauma anterior:** Agente destruiu arquivos e Git por executar sem confirmação. ISSO NÃO PODE SE REPETIR.
 
@@ -300,7 +299,47 @@ agentes/
 ├── [outras categorias]
 ├── CATALOGO_AGENTES.md     # Índice completo
 └── CATALOGO_AGENTES.csv    # Para análise
-```
+
+### 🗺️ Mapa da Mansão (Estrutura de Pastas)
+
+**Raiz (`/`):**
+- `docs/`: Documentação geral, handovers, manuais.
+- `scripts/`: Scripts de manutenção, setup e debug que não são do core.
+- `logs/`: Arquivos de log (gitignored).
+- `outputs/`: Saídas gerais (gitignored).
+- `incubadora/`: O sistema principal.
+
+**Incubadora (`/incubadora`):**
+- `agentes/`: Apenas os agentes numéricos (01-11).
+- `core/`: Lógica central (Orquestrador, Classes Base).
+- `services/`: Serviços reutilizáveis (ImageGen, TTS, VideoRender).
+- `utils/`: Utilitários puros (não de negócio).
+- `scripts/`: Scripts operacionais da incubadora.
+  - `deploy/`: Scripts de deploy (AWS, GCP).
+  - `ops/`: Scripts de verificação, fix e manutenção.
+  - `tests/`: Scripts de teste pontuais.
+- `docs/`: Documentação técnica específica da incubadora.
+
+---
+
+---
+
+## 🏗️ Padrões de Arquitetura e Organização
+
+### Contexto de Execução
+- **Regra:** Scripts devem ser executados como módulos a partir da raiz do projeto.
+- **Motivo:** Evita "hacks" de `sys.path.append` e garante resolução correta de imports.
+- **Padrão:** `python -m incubadora.run_agents` em vez de `python incubadora/run_agents.py`.
+- **Obs:** *Refatoração pendente para adotar este padrão em todo o sistema.*
+
+### Organização de Arquivos
+- **Regra:** A raiz do projeto deve conter apenas arquivos essenciais de configuração e documentação de entrada.
+- **Anti-Padrão:** Scripts soltos (`teste.py`, `debug.py`) na raiz.
+- **Destinos Corretos:**
+  - Scripts de teste/debug -> `tests/` ou `scripts/debug/`
+  - Scripts de setup -> `scripts/setup/`
+  - Documentação -> `docs/` ou `specs/`
+  - Logs e Outputs -> `logs/` e `outputs/` (gitignored)
 
 ---
 

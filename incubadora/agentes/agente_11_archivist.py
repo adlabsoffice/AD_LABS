@@ -58,7 +58,7 @@ class Agente11Archivist:
                 except Exception as e:
                     console.print(f"[yellow]Aviso Drive: {e}[/yellow]")
 
-    def arquivar_projeto(self, config, output_files):
+    def arquivar_projeto(self, config, video_path=None):
         """
         Gerencia o upload para Google Drive (Aprovação) e S3 (Arquivo Morto).
         """
@@ -70,17 +70,29 @@ class Agente11Archivist:
         # 1. Upload para Google Drive (Vitrine) - REAL
         console.print(f"   [cyan]Google Drive (Vitrine):[/cyan] Enviando assets de aprovacao...")
         
-        if self.drive_service and os.path.exists("output/video_final.mp4"):
-            try:
-                file_metadata = {
-                    'name': f'{projeto_id}_video_final.mp4',
-                    'parents': [os.getenv('GOOGLE_DRIVE_FOLDER_ID', 'root')]
-                }
-                media = MediaFileUpload(
-                    'output/video_final.mp4',
-                    mimetype='video/mp4',
-                    resumable=True
-                )
+        if self.drive_service:
+            # Tenta encontrar vídeo se não fornecido
+            if not video_path:
+                # Procura no diretório de saída padrão
+                default_dir = os.path.join("outputs", "T08_videos_finais")
+                if os.path.exists(default_dir):
+                    files = [f for f in os.listdir(default_dir) if f.endswith(".mp4")]
+                    if files:
+                        # Pega o mais recente
+                        files.sort(key=lambda x: os.path.getmtime(os.path.join(default_dir, x)), reverse=True)
+                        video_path = os.path.join(default_dir, files[0])
+
+            if video_path and os.path.exists(video_path):
+                try:
+                    file_metadata = {
+                        'name': f'{projeto_id}_video_final.mp4',
+                        'parents': [os.getenv('GOOGLE_DRIVE_FOLDER_ID', 'root')]
+                    }
+                    media = MediaFileUpload(
+                        video_path,
+                        mimetype='video/mp4',
+                        resumable=True
+                    )
                 file = self.drive_service.files().create(
                     body=file_metadata,
                     media_body=media,
@@ -95,20 +107,20 @@ class Agente11Archivist:
         else:
             if not self.drive_service:
                 console.print(f"      -> [yellow]Google Drive não configurado (credenciais ausentes)[/yellow]")
-            elif not os.path.exists("output/video_final.mp4"):
-                console.print(f"      -> [yellow]Vídeo final não encontrado para upload[/yellow]")
+            elif not video_path or not os.path.exists(video_path):
+                console.print(f"      -> [yellow]Vídeo final não encontrado para upload (caminho: {video_path})[/yellow]")
         
         # 2. Upload para AWS S3 (Cofre) - REAL
         console.print(f"   [cyan]AWS S3 (Cofre):[/cyan] Arquivando projeto completo...")
         
         if self.s3_client and self.s3_bucket:
             try:
-                # Upload de todos os arquivos da pasta output
+                # Upload de todos os arquivos da pasta outputs
                 upload_count = 0
-                for root, dirs, files in os.walk("output"):
+                for root, dirs, files in os.walk("outputs"):
                     for file in files:
                         local_path = os.path.join(root, file)
-                        s3_key = f"{projeto_id}/{os.path.relpath(local_path, 'output').replace(os.sep, '/')}"
+                        s3_key = f"{projeto_id}/{os.path.relpath(local_path, 'outputs').replace(os.sep, '/')}"
                         
                         try:
                             self.s3_client.upload_file(

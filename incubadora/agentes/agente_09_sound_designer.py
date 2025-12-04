@@ -30,6 +30,10 @@ class Agente09SoundDesigner:
         }
         
         self.assets_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "assets", "audio")
+        
+        # Garante estrutura de diretórios
+        os.makedirs(os.path.join(self.assets_dir, "sfx"), exist_ok=True)
+        os.makedirs(os.path.join(self.assets_dir, "music"), exist_ok=True)
 
     def _get_asset_path(self, category, filename):
         """Retorna caminho absoluto do asset."""
@@ -98,20 +102,47 @@ class Agente09SoundDesigner:
                     narration = AudioSegment.from_file(faixa['arquivo'])
                     
                     # 2. Carregar Trilha (Looping se necessário)
-                    # Por enquanto, placeholder de silêncio se não tiver música
-                    music = AudioSegment.silent(duration=len(narration)) 
+                    music_dir = os.path.join(self.assets_dir, "music")
+                    music_files = [f for f in os.listdir(music_dir) if f.endswith(".mp3")]
                     
-                    # TODO: Implementar carregamento real de música de fundo
+                    if music_files:
+                        music_file = random.choice(music_files)
+                        music_path = os.path.join(music_dir, music_file)
+                        console.print(f"      -> [cyan]Adicionando trilha: {music_file}[/cyan]")
+                        
+                        bg_music = AudioSegment.from_file(music_path)
+                        
+                        # Ajustar volume (-15dB para fundo)
+                        bg_music = bg_music - 15
+                        
+                        # Loop para cobrir narração
+                        if len(bg_music) < len(narration):
+                            loops = int(len(narration) / len(bg_music)) + 1
+                            bg_music = bg_music * loops
+                            
+                        # Cortar excesso
+                        bg_music = bg_music[:len(narration)]
+                        
+                        # Fade in/out
+                        bg_music = bg_music.fade_in(2000).fade_out(2000)
+                        
+                        # Mixar (Overlay)
+                        music = bg_music
+                    else:
+                        console.print(f"      -> [yellow]Nenhuma música encontrada em {music_dir}. Usando silêncio.[/yellow]")
+                        music = AudioSegment.silent(duration=len(narration))
                     
                     # 3. Carregar SFX (Overlay no início ou fim)
                     if sfx_path and os.path.exists(sfx_path):
                         sfx = AudioSegment.from_file(sfx_path)
                         # Reduzir volume do SFX
                         sfx = sfx - 5
-                        # Mixar no início
                         mixed = narration.overlay(sfx, position=0)
                     else:
                         mixed = narration
+                    
+                    # Mixar música de fundo
+                    mixed = mixed.overlay(music)
                     
                     # 4. Normalizar e Exportar
                     mixed = normalize(mixed)
