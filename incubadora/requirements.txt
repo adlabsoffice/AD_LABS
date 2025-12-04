@@ -12,3 +12,4 @@ instagrapi
 pandas
 paramiko
 pydub
+python-telegram-bot

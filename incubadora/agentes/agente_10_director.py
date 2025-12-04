@@ -54,16 +54,34 @@ class Agente10Director:
              score += 5
              feedback.append("Ritmo dinamico (blocos curtos).")
 
-        console.print(f"[bold]Score do Diretor: {score}/15[/bold]")
+        console.print(f"[bold]Score do Diretor: {score}/20[/bold]")
         for f in feedback:
             console.print(f"   {f}")
+        
+        # 4. Verificar Duração Total (CRÍTICO)
+        console.print("\n[bold yellow]Verificando duração total...[/bold yellow]")
+        duracao_total = self._calcular_duracao_total(blocos)
+        duracao_alvo = config.get('duracao_alvo_segundos', 60)
+        
+        if duracao_total > duracao_alvo * 1.2:  # 20% de margem
+            feedback.append(f"FATAL: Vídeo muito longo ({duracao_total}s vs {duracao_alvo}s alvo)")
+            console.print(f"[red]   ❌ {feedback[-1]}[/red]")
+            score -= 10
+        elif duracao_total < duracao_alvo * 0.8:
+            feedback.append(f"AVISO: Vídeo muito curto ({duracao_total}s)")
+            console.print(f"[yellow]   ⚠ {feedback[-1]}[/yellow]")
+            score -= 3
+        else:
+            feedback.append(f"Duração dentro do alvo ({duracao_total}s)")
+            console.print(f"[green]   ✓ {feedback[-1]}[/green]")
+            score += 5
 
-        # PADRAO STOCKDALE: Score minimo alto (12/15)
-        if score >= 12:
-            console.print(f"[bold green]APROVADO PARA PRODUCAO (STOCKDALE APPROVED)![/bold green]")
+        # PADRAO STOCKDALE: Score minimo alto (15/20)
+        if score >= 15:
+            console.print(f"\n[bold green]APROVADO PARA PRODUCAO (STOCKDALE APPROVED)![/bold green]")
             return True
         else:
-            console.print(f"[bold red]REJEITADO: O roteiro nao atingiu o padrao de excelencia.[/bold red]")
+            console.print(f"\n[bold red]REJEITADO: O roteiro nao atingiu o padrao de excelencia (Score: {score}/20).[/bold red]")
             return False
 
     def verificar_continuidade(self, roteiro):
@@ -103,3 +121,13 @@ class Agente10Director:
 
         console.print(f"[bold green]CONTINUIDADE VISUAL GARANTIDA![/bold green]")
         return True
+    
+    def _calcular_duracao_total(self, blocos) -> int:
+        """
+        Estima duração total baseada no WPM esperado (175 wpm).
+        Retorna duração em segundos.
+        """
+        total_palavras = sum([len(b.get('fala', '').split()) for b in blocos])
+        wpm_alvo = 175  # Palavras por minuto (Blueprint: 168-187)
+        duracao_segundos = int((total_palavras / wpm_alvo) * 60)
+        return duracao_segundos
