@@ -311,8 +311,15 @@ class Agente04ArquitetoEixos:
             
         except Exception as e:
             console.print(f"[bold red]❌ Erro: {e}[/bold red]")
-        console.print(f"\n[bold]Eixo {i}:[/bold]")
-        console.print(json.dumps(eixo, indent=2, ensure_ascii=False))
+            raise
+
+
+def main():
+    """Teste standalone do agente."""
+    agente = Agente04ArquitetoEixos()
+    agente.executar()
+
 
 if __name__ == "__main__":
     main()
+

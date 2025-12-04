@@ -1,7 +1,33 @@
 import os
+import warnings
 from instagrapi import Client
 from rich.console import Console
 from dotenv import load_dotenv
+
+# ⚠️ DEPRECATION WARNING
+warnings.warn(
+    "\n"
+    "═══════════════════════════════════════════════════════════════\n"
+    "⚠️  agente_08_instagram.py está DEPRECADO\n"
+    "═══════════════════════════════════════════════════════════════\n"
+    "\n"
+    "Este arquivo foi substituído pela arquitetura Strategy Pattern.\n"
+    "\n"
+    "USO NOVO:\n"
+    "  from agentes.agente_12_publisher import Agente12Publisher\n"
+    "  agente = Agente12Publisher(canal_id='seu_canal', config={...})\n"
+    "  agente.publicar('instagram', video_path, metadata)\n"
+    "\n"
+    "MOTIVO:\n"
+    "  - Eliminar duplicação de código\n"
+    "  - Aplicar SOLID (DIP: Dependency Inversion Principle)\n"
+    "  - Suportar múltiplas plataformas com um agente genérico\n"
+    "\n"
+    "Este arquivo será REMOVIDO em AD_LABS v3.0.\n"
+    "═══════════════════════════════════════════════════════════════\n",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 # Load environment variables
 load_dotenv()

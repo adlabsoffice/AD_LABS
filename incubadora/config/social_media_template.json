@@ -1,0 +1,25 @@
+{
+    "youtube": {
+        "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
+        "client_secret": "YOUR_CLIENT_SECRET",
+        "refresh_token": "YOUR_REFRESH_TOKEN",
+        "default_privacy": "unlisted",
+        "default_category": 22,
+        "max_retries": 3
+    },
+    "instagram": {
+        "username": "seu_usuario_instagram",
+        "password": "sua_senha_instagram",
+        "use_official_api": false,
+        "max_retries": 3
+    },
+    "tiktok": {
+        "status": "not_implemented",
+        "alternative_workflow": "n8n_workflows/03_tiktok_posting.json"
+    },
+    "approval_flow": {
+        "require_telegram_approval": true,
+        "timeout_minutos": 10,
+        "auto_publish_after_hours": null
+    }
+}

@@ -26,24 +26,87 @@ def show_banner():
 def setup_canal_ia(orch: Orchestrator):
     """
     Fluxo de setup guiado por IA (CLI).
+    Ordem Correta: Agente01 (guia) → SAPG (opcional) → Orchestrator
     """
     show_banner()
     console.print("\n[bold green]🚀 MODO SETUP IA INICIADO[/bold green]")
     
-    # Aqui manteríamos a integração com SAPG, mas agora passando pelo Orchestrator
-    # Por enquanto, vamos simplificar para chamar o Orchestrator diretamente
-    # TODO: Reintegrar SAPG via Orchestrator.pesquisar_nicho()
+    # ✅ CORREÇÃO (04/12/2024): Agente 01 é quem GUIA o processo
+    try:
+        from agentes.agente_01_inicializador import Agente01Inicializador
+        from agentes.sapg import SAPG
+    except ImportError as e:
+        console.print(f"[red]Erro ao importar componentes: {e}[/red]")
+        
+        # Fallback minimalista
+        nicho = Prompt.ask("Qual nicho?", default="Curiosidades Históricas")
+        orch.iniciar_projeto({"nome_canal": f"Canal {nicho}", "nicho": nicho, "modo_criacao": "manual"}, modo="interativo")
+        return
     
-    nicho = Prompt.ask("Qual nicho deseja pesquisar?", default="Curiosidades Históricas")
+    # 1️⃣ AGENTE 01: Faz as perguntas iniciais (GUIA)
+    console.print("\n[cyan]🤖 Agente 01: Inicializador (Perguntas Iniciais)[/cyan]")
+    agente01 = Agente01Inicializador()
     
-    config_inicial = {
-        "nome_canal": f"Canal {nicho}",
-        "nicho": nicho,
-        "modo_criacao": "ia_assistida"
-    }
+    # Pergunta fundamental: ideia própria ou pesquisa IA?
+    tem_ideia = Confirm.ask("\n💡 Você já tem uma ideia de nicho/canal?", default=False)
     
-    # Inicia Projeto via Core
-    orch.iniciar_projeto(config_inicial, modo="interativo")
+    if tem_ideia:
+        # Fluxo Manual: usuário define tudo
+        console.print("\n[bold]📝 Modo: Ideia Própria[/bold]")
+        config_canal = agente01.executar(nicho=None)  # Faz perguntas completas
+        
+    else:
+        # Fluxo IA: SAPG pesquisa tendências
+        console.print("\n[bold]🔍 Modo: Pesquisa de Tendências (SAPG)[/bold]")
+        
+        try:
+            # 2️⃣ SAPG: Pesquisa tendências globais
+            console.print("[cyan]📊 SAPG: Analisando YouTube Trends (US + BR)...[/cyan]")
+            sapg = SAPG()
+            oportunidades = sapg.pesquisar_tendencias_globais()
+            
+            if not oportunidades:
+                console.print("[yellow]⚠ Nenhuma tendência detectada, usando input manual[/yellow]")
+                config_canal = agente01.executar(nicho=None)
+            else:
+                # Mostra oportunidades
+                console.print("\n[bold green]✨ Oportunidades Detectadas:[/bold green]")
+                for opp in oportunidades:
+                    console.print(f"  {opp['id']}. {opp.get('nicho_br', opp.get('nicho_us'))} (Score: {opp.get('score', 0):.1f})")
+                
+                escolha = Prompt.ask("\nEscolha número ou digite nicho customizado", default="1")
+                
+                # Extrai nicho escolhido
+                if escolha.isdigit() and int(escolha) <= len(oportunidades):
+                    opp_selecionada = oportunidades[int(escolha) - 1]
+                    nicho_escolhido = opp_selecionada.get('nicho_br', opp_selecionada.get('nicho_us'))
+                else:
+                    nicho_escolhido = escolha
+                
+                # 3️⃣ SAPG: Gera config IA completa
+                console.print(f"\n[cyan]📝 SAPG: Gerando Configuração IA para '{nicho_escolhido}'...[/cyan]")
+                config_ia_gerada = sapg.gerar_configuracao_completa(nicho_escolhido)
+                
+                console.print(f"[green]✓ Config IA:[/green] {config_ia_gerada.get('nome_canal', 'N/A')}")
+                
+                # 4️⃣ AGENTE 01: Cria estrutura do canal com config IA
+                # ✅ AQUI estava o bug: criar_estrutura_canal nunca era chamado!
+                config_canal = agente01.criar_estrutura_canal(config_ia_gerada)
+                
+        except Exception as e:
+            console.print(f"[yellow]⚠ SAPG falhou ({e}), voltando para modo manual[/yellow]")
+            config_canal = agente01.executar(nicho=None)
+    
+    # 5️⃣ ORCHESTRATOR: Inicializa projeto com config final
+    console.print("\n[cyan]🎯 Orchestrator: Inicializando Projeto...[/cyan]")
+    
+    # Adiciona flag de modo
+    config_canal["modo_criacao"] = "ia_assistida" if not tem_ideia else "manual_guiado"
+    
+    orch.iniciar_projeto(config_canal, modo="interativo")
+    
+    console.print("\n[bold green]✅ Setup Completo![/bold green]")
+    console.print(f"[dim]Fluxo: Agente 01 (guia) → {'SAPG (IA)' if not tem_ideia else 'Manual'} → Orchestrator ✓[/dim]")
 
 def main():
     parser = argparse.ArgumentParser(description="Incubadora AD_LABS CLI v3")

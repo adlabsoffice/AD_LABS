@@ -72,7 +72,10 @@ class YouTubeConnector:
                     "views": view_count,
                     "descricao": item["snippet"]["description"]
                 })
-                return videos
+        
+        # ✅ CORREÇÃO (04/12/2024): return estava DENTRO do loop (linha 75)
+        # Agora retorna TODOS os vídeos encontrados, não apenas o primeiro
+        return videos
 
 class Agente02Pesquisador:
     def __init__(self):
